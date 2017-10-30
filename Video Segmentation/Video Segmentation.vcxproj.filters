@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\VideoCreator">
+      <UniqueIdentifier>{513896ad-de35-48d5-a017-b5ef8aae9fab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\VideoCreator">
+      <UniqueIdentifier>{a7d39633-726c-407b-8154-053b2f2933c8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -21,6 +27,9 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Shape.h">
+      <Filter>Header Files\VideoCreator</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -28,6 +37,9 @@
     </ClCompile>
     <ClCompile Include="Video Segmentation.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Shape.cpp">
+      <Filter>Source Files\VideoCreator</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
