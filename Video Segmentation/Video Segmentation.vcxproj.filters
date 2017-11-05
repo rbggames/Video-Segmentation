@@ -41,5 +41,11 @@
     <ClCompile Include="Shape.cpp">
       <Filter>Source Files\VideoCreator</Filter>
     </ClCompile>
+    <ClCompile Include="TrackerTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BoundingBox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
