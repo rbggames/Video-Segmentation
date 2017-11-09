@@ -3,13 +3,11 @@
 #include <opencv2/tracking.hpp>
 #include <opencv2/core/ocl.hpp>
 #include "Shape.h"
+#include "TrackedObject.h"
 
 using namespace cv;
 using namespace std;
 
-// Convert to string
-#define SSTR( x ) static_cast< std::ostringstream & >( \
-( std::ostringstream() << std::dec << x ) ).str()
 
 const int maxObjects = 10;
 
@@ -26,12 +24,14 @@ int find_contour(Mat image,cv::Rect2d* boundingBoxes, int maxBoundingBoxes)
 	cvtColor(image, gray_mat, CV_BGR2GRAY);
 
 	// apply canny edge detection
-
 	Canny(image, canny_mat, 30, 128, 3, false);
+
+	//Dialate edges to close small gaps so contour detection creates one object
+	Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(4, 4));
+	dilate(canny_mat, canny_mat, structuringElement);
 
 	//3. Find & process the contours
 	//3.1 find contours on the edge image.
-
 	vector< vector< cv::Point> > contours;
 	findContours(canny_mat, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
 
@@ -71,32 +71,6 @@ int find_contour(Mat image,cv::Rect2d* boundingBoxes, int maxBoundingBoxes)
 	return contours.size();
 }
 
-void refineMask(Mat image,Mat mask, Rect2d boundingBox) {
-	bool leftEdgeFound, rightEdgeFound;
-	int x;
-	int thresh = 30;
-	int borderSize = 4;
-	x = boundingBox.x;
-	for (int y = boundingBox.y; y < boundingBox.y + boundingBox.height; y++) {
-		leftEdgeFound  = false;
-		rightEdgeFound = false;
-		for (int xOffset = -borderSize; xOffset < (boundingBox.width) ; xOffset++) {
-			if (!leftEdgeFound && image.at<unsigned char>(y, x + xOffset) < thresh ) {
-				mask.at<unsigned char>(y, x + xOffset) = 0;
-			}
-			else {
-				leftEdgeFound = true;
-			}
-			if (!rightEdgeFound && image.at<unsigned char>(y, x + boundingBox.width - xOffset) < thresh) {
-				mask.at<unsigned char>(y, x + boundingBox.width - xOffset) = 0;
-			}
-			else {
-				rightEdgeFound = true;
-			}
-		}
-	}
-}
-
 int main(int argc, char **argv)
 {
 	Point rook_points[1][7];
@@ -121,6 +95,9 @@ int main(int argc, char **argv)
 
 	Shape s1(20, 30, w, w, ppt, npt);
 	Shape s2(200, 300, w, w, ppt, npt);
+	Shape s3(300, 300, w, w, ppt, npt);
+	Shape s4(400, 300, w, w, ppt, npt);
+	Shape s5(500, 300, w, w, ppt, npt);
 
 	// List of tracker types in OpenCV 3.2
 	// NOTE : GOTURN implementation is buggy and does not work.
@@ -131,6 +108,8 @@ int main(int argc, char **argv)
 	string trackerType = trackerTypes[2];
 
 	Ptr<Tracker> trackers[maxObjects];
+	TrackedObject** trackedObjects;
+
 	for (int i = 0; i < maxObjects; i++) {
 		#if (CV_MINOR_VERSION < 3)
 			{
@@ -172,19 +151,18 @@ int main(int argc, char **argv)
 	
 	s1.updateDraw(frame);
 	s2.updateDraw(frame);
+	s3.updateDraw(frame);
+	s4.updateDraw(frame);
+	s5.updateDraw(frame);
 
 	cv::Rect2d objectBoundingBoxes[maxObjects];
 	const int numObjects = min(maxObjects, find_contour(frame, objectBoundingBoxes,maxObjects));
-	// Define initial boundibg box
-	//Rect2d bbox(287, 23, 86, 320);
-
-	// Uncomment the line below to select a different bounding box
-	//bbox = selectROI(frame, false);
-
+	
+	trackedObjects = (TrackedObject**)malloc(numObjects * sizeof(TrackedObject*));
 	// Display bounding box.
 	for (int i=0; i < numObjects; i++) {
 		rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
-		trackers[i]->init(frame, objectBoundingBoxes[i]);
+		trackedObjects[i] = new TrackedObject(frame,objectBoundingBoxes[i],i);
 	}
 	imshow("Tracking", frame);
 
@@ -196,6 +174,9 @@ int main(int argc, char **argv)
 		GaussianBlur(frame, frame, Size(7, 7), 0, 0);
 		s1.updateDraw(frame);
 		s2.updateDraw(frame);
+		s3.updateDraw(frame);
+		s4.updateDraw(frame);
+		s5.updateDraw(frame);
 
 		// Start timer
 		double timer = (double)getTickCount();
@@ -206,22 +187,10 @@ int main(int argc, char **argv)
 		//TODO: Could be got from elsewhere
 		Mat cannyFrame;
 		Canny(frame, cannyFrame, 30, 200);
-		imshow("Canny", cannyFrame);
 
 		for (int i = 0; i < numObjects; i++) {
-			trackers[i]->update(frame, objectBoundingBoxes[i]);
-			if (ok[i])
-			{
-				// Tracking success : Draw the tracked object
-				Mat object(frame.size(), CV_8UC3),mask(frame.size(), CV_8U, Scalar(0));
-				object.setTo(Scalar(0, 255, 0));
-				rectangle(mask, objectBoundingBoxes[i], Scalar(255), CV_FILLED);
-				refineMask(cannyFrame, mask, objectBoundingBoxes[i]);
-				frame.copyTo(object, mask);
-				imshow("Tracked "+ SSTR(int (i)), object);
-				rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
-			}
-			else
+			ok[i] = trackedObjects[i]->update(frame);
+			if (!ok[i])
 			{
 				// Tracking failure detected.
 				putText(frame, "Tracking failure detected", Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 255), 2);
