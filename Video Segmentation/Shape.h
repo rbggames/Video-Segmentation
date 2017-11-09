@@ -6,10 +6,14 @@ class Shape
 {
 public:
 	int x, y, width, height;
-	Shape(int x,int y, int width,int height, const Point** pts);
+	int motion_x, motion_y;
+	Shape(int x, int y, int width, int height, const Point** pts, const int* npt);
 	~Shape();
 	Mat getMatrix();
+	void updateDraw(Mat input);
+	void setMotionVector(double mX, double mY);
 private:
-	 Mat matrix;
+	void draw(Mat input, int x, int y);
+	Mat shapeMat;
 };
 

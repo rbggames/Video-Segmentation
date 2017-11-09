@@ -2,6 +2,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/tracking.hpp>
 #include <opencv2/core/ocl.hpp>
+#include "Shape.h"
 
 using namespace cv;
 using namespace std;
@@ -70,6 +71,31 @@ int find_contour(Mat image,cv::Rect2d* boundingBoxes, int maxBoundingBoxes)
 	return contours.size();
 }
 
+void refineMask(Mat image,Mat mask, Rect2d boundingBox) {
+	bool leftEdgeFound, rightEdgeFound;
+	int x;
+	int thresh = 30;
+	int borderSize = 4;
+	x = boundingBox.x;
+	for (int y = boundingBox.y; y < boundingBox.y + boundingBox.height; y++) {
+		leftEdgeFound  = false;
+		rightEdgeFound = false;
+		for (int xOffset = -borderSize; xOffset < (boundingBox.width) ; xOffset++) {
+			if (!leftEdgeFound && image.at<unsigned char>(y, x + xOffset) < thresh ) {
+				mask.at<unsigned char>(y, x + xOffset) = 0;
+			}
+			else {
+				leftEdgeFound = true;
+			}
+			if (!rightEdgeFound && image.at<unsigned char>(y, x + boundingBox.width - xOffset) < thresh) {
+				mask.at<unsigned char>(y, x + boundingBox.width - xOffset) = 0;
+			}
+			else {
+				rightEdgeFound = true;
+			}
+		}
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -85,10 +111,16 @@ int main(int argc, char **argv)
 	rook_points[0][7] = Point(26 * w / 40.0, w / 8.0);
 	RNG rng(12345);
 
+	
+
 	const Point* ppt[1] = { rook_points[0] };
 	int npt[] = { 7 };
 	int x = 0;
 	int y = 0;
+
+
+	Shape s1(20, 30, w, w, ppt, npt);
+	Shape s2(200, 300, w, w, ppt, npt);
 
 	// List of tracker types in OpenCV 3.2
 	// NOTE : GOTURN implementation is buggy and does not work.
@@ -137,20 +169,9 @@ int main(int argc, char **argv)
 	bool ok = video.read(frame);
 	GaussianBlur(frame, frame, Size(7, 7), 0, 0);
 	frame.setTo(Scalar(0, 0, 0));
-	fillPoly(frame, ppt, npt, 1,
-		Scalar(255, 0, 255),
-		8);
-	for (int i = 0; i < 7; i++) {
-		rook_points[0][i].x += 100;
-		rook_points[0][i].y += 300;
-	}
-	fillPoly(frame, ppt, npt, 1,
-		Scalar(255, 0, 0),
-		8);
-	for (int i = 0; i < 7; i++) {
-		rook_points[0][i].x -= 100;
-		rook_points[0][i].y -= 300;
-	}
+	
+	s1.updateDraw(frame);
+	s2.updateDraw(frame);
 
 	cv::Rect2d objectBoundingBoxes[maxObjects];
 	const int numObjects = min(maxObjects, find_contour(frame, objectBoundingBoxes,maxObjects));
@@ -173,30 +194,20 @@ int main(int argc, char **argv)
 	{
 		frame.setTo(Scalar(0, 0, 0));
 		GaussianBlur(frame, frame, Size(7, 7), 0, 0);
-		for (int i = 0; i < 7; i++) {
-			rook_points[0][i].x += 1;
-			rook_points[0][i].y += 1;
-		}
-		fillPoly(frame, ppt, npt, 1,
-			Scalar(255, 0, 255),
-			8);
-		for (int i = 0; i < 7; i++) {
-			rook_points[0][i].x += 100;
-			rook_points[0][i].y += 300;
-		}
-		fillPoly(frame, ppt, npt, 1,
-			Scalar(255, 0, 0),
-			8);
-		for (int i = 0; i < 7; i++) {
-			rook_points[0][i].x -= 100;
-			rook_points[0][i].y -= 300;
-		}
+		s1.updateDraw(frame);
+		s2.updateDraw(frame);
 
 		// Start timer
 		double timer = (double)getTickCount();
 		
 		// Update the tracking result
 		bool* ok = (bool*) malloc(sizeof(bool)*numObjects);
+
+		//TODO: Could be got from elsewhere
+		Mat cannyFrame;
+		Canny(frame, cannyFrame, 30, 200);
+		imshow("Canny", cannyFrame);
+
 		for (int i = 0; i < numObjects; i++) {
 			trackers[i]->update(frame, objectBoundingBoxes[i]);
 			if (ok[i])
@@ -204,9 +215,10 @@ int main(int argc, char **argv)
 				// Tracking success : Draw the tracked object
 				Mat object(frame.size(), CV_8UC3),mask(frame.size(), CV_8U, Scalar(0));
 				object.setTo(Scalar(0, 255, 0));
-				rectangle(mask, objectBoundingBoxes[i], Scalar(255), CV_FILLED, 1);
+				rectangle(mask, objectBoundingBoxes[i], Scalar(255), CV_FILLED);
+				refineMask(cannyFrame, mask, objectBoundingBoxes[i]);
 				frame.copyTo(object, mask);
-				imshow("Tracked"+i, object);
+				imshow("Tracked "+ SSTR(int (i)), object);
 				rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
 			}
 			else
@@ -233,6 +245,13 @@ int main(int argc, char **argv)
 		if (k == 27)
 		{
 			break;
+		}
+		//Pause
+		if (k == 'p') {
+			k = 0;
+			while (k != 'p') {
+				k = waitKey(5);
+			}
 		}
 
 	}
