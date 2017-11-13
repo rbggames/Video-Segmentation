@@ -33,6 +33,12 @@
     <ClInclude Include="TrackedObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ShapeHook.h">
+      <Filter>Header Files\VideoCreator</Filter>
+    </ClInclude>
+    <ClInclude Include="VideoSource.h">
+      <Filter>Header Files\VideoCreator</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -52,6 +58,12 @@
     </ClCompile>
     <ClCompile Include="TrackedObject.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ShapeHook.cpp">
+      <Filter>Source Files\VideoCreator</Filter>
+    </ClCompile>
+    <ClCompile Include="VideoSource.cpp">
+      <Filter>Source Files\VideoCreator</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -26,6 +26,7 @@ private:
 	Vec2d motionVector;
 	Mat mask;
 	Mat object;
+	Mat savedObject;
 	Ptr<Tracker> tracker;
 
 	void refineMask(Mat image, Mat mask, Rect2d boundingBox);

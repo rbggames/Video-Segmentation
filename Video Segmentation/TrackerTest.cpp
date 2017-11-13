@@ -3,7 +3,9 @@
 #include <opencv2/tracking.hpp>
 #include <opencv2/core/ocl.hpp>
 #include "Shape.h"
+#include "ShapeHook.h"
 #include "TrackedObject.h"
+#include "VideoSource.h"
 
 using namespace cv;
 using namespace std;
@@ -73,87 +75,15 @@ int find_contour(Mat image,cv::Rect2d* boundingBoxes, int maxBoundingBoxes)
 
 int main(int argc, char **argv)
 {
-	Point rook_points[1][7];
-	int w = 60;
-	rook_points[0][0] = Point(w / 4.0, 7 * w / 8.0);
-	rook_points[0][1] = Point(3 * w / 4.0, 7 * w / 8.0);
-	rook_points[0][2] = Point(3 * w / 4.0, 13 * w / 16.0);
-	rook_points[0][3] = Point(11 * w / 16.0, 13 * w / 16.0);
-	rook_points[0][4] = Point(19 * w / 32.0, 3 * w / 8.0);
-	rook_points[0][5] = Point(3 * w / 4.0, 3 * w / 8.0);
-	rook_points[0][6] = Point(3 * w / 4.0, w / 8.0);
-	rook_points[0][7] = Point(26 * w / 40.0, w / 8.0);
 	RNG rng(12345);
-
-	
-
-	const Point* ppt[1] = { rook_points[0] };
-	int npt[] = { 7 };
-	int x = 0;
-	int y = 0;
-
-
-	Shape s1(20, 30, w, w, ppt, npt);
-	Shape s2(200, 300, w, w, ppt, npt);
-	Shape s3(300, 300, w, w, ppt, npt);
-	Shape s4(400, 300, w, w, ppt, npt);
-	Shape s5(500, 300, w, w, ppt, npt);
-
-	// List of tracker types in OpenCV 3.2
-	// NOTE : GOTURN implementation is buggy and does not work.
-	string trackerTypes[6] = { "BOOSTING", "MIL", "KCF", "TLD","MEDIANFLOW", "GOTURN" };
-	// vector <string> trackerTypes(types, std::end(types));
-
-	// Create a tracker
-	string trackerType = trackerTypes[2];
-
-	Ptr<Tracker> trackers[maxObjects];
 	TrackedObject** trackedObjects;
 
-	for (int i = 0; i < maxObjects; i++) {
-		#if (CV_MINOR_VERSION < 3)
-			{
-				tracker[i] = Tracker::create(trackerType);
-			}
-		#else
-			{
-				if (trackerType == "BOOSTING")
-					trackers[i] = TrackerBoosting::create();
-				if (trackerType == "MIL")
-					trackers[i] = TrackerMIL::create();
-				if (trackerType == "KCF")
-					trackers[i] = TrackerKCF::create();
-				if (trackerType == "TLD")
-					trackers[i] = TrackerTLD::create();
-				if (trackerType == "MEDIANFLOW")
-					trackers[i] = TrackerMedianFlow::create();
-				if (trackerType == "GOTURN")
-					trackers[i] = TrackerGOTURN::create();
-			}
-		#endif
-	}
-	// Read video
-	VideoCapture video(0);
-	
-	// Exit if video is not opened
-	if (!video.isOpened())
-	{
-		cout << "Could not read video file" << endl;
-		return 1;
-
-	}
-
 	// Read first frame
-	Mat frame;
-	bool ok = video.read(frame);
-	GaussianBlur(frame, frame, Size(7, 7), 0, 0);
-	frame.setTo(Scalar(0, 0, 0));
+	Mat frame(600,600, CV_8UC3);
+
+	VideoSource video;
 	
-	s1.updateDraw(frame);
-	s2.updateDraw(frame);
-	s3.updateDraw(frame);
-	s4.updateDraw(frame);
-	s5.updateDraw(frame);
+	video.getFrame(frame);
 
 	cv::Rect2d objectBoundingBoxes[maxObjects];
 	const int numObjects = min(maxObjects, find_contour(frame, objectBoundingBoxes,maxObjects));
@@ -168,16 +98,8 @@ int main(int argc, char **argv)
 
 	
 
-	while (video.read(frame))
+	while (video.getFrame(frame))
 	{
-		frame.setTo(Scalar(0, 0, 0));
-		GaussianBlur(frame, frame, Size(7, 7), 0, 0);
-		s1.updateDraw(frame);
-		s2.updateDraw(frame);
-		s3.updateDraw(frame);
-		s4.updateDraw(frame);
-		s5.updateDraw(frame);
-
 		// Start timer
 		double timer = (double)getTickCount();
 		
@@ -200,9 +122,7 @@ int main(int argc, char **argv)
 
 		// Calculate Frames per second (FPS)
 		float fps = getTickFrequency() / ((double)getTickCount() - timer);
-		// Display tracker type on frame
-		putText(frame, trackerType + " Tracker", Point(100, 20), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50, 170, 50), 2);
-
+		
 		// Display FPS on frame
 		putText(frame, "FPS : " + SSTR(int(fps)), Point(100, 50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50, 170, 50), 2);
 
