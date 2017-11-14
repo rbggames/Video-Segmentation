@@ -12,10 +12,14 @@ using namespace std;
 class TrackedObject
 {
 public:
+	Mat mask;
+
 	TrackedObject(Mat frame, Rect2d boundingBox,int id_);
 	~TrackedObject();
 
 	bool update(Mat frame);
+	void drawSegment(Mat frame,bool isOverlap,Mat outputFrame);
+	bool boundingBoxOverlap(TrackedObject object);
 private:
 	int id;
 	int positionIndex;
@@ -24,7 +28,6 @@ private:
 	Point position;
 	Point previousPosition[5];
 	Vec2d motionVector;
-	Mat mask;
 	Mat object;
 	Mat savedObject;
 	Ptr<Tracker> tracker;

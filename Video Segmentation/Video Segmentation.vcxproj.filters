@@ -39,6 +39,9 @@
     <ClInclude Include="VideoSource.h">
       <Filter>Header Files\VideoCreator</Filter>
     </ClInclude>
+    <ClInclude Include="BackgroundExtractor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -64,6 +67,9 @@
     </ClCompile>
     <ClCompile Include="VideoSource.cpp">
       <Filter>Source Files\VideoCreator</Filter>
+    </ClCompile>
+    <ClCompile Include="BackgroundExtractor.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

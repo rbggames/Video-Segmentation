@@ -154,6 +154,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BackgroundExtractor.h" />
     <ClInclude Include="Shape.h" />
     <ClInclude Include="ShapeHook.h" />
     <ClInclude Include="stdafx.h" />
@@ -162,6 +163,7 @@
     <ClInclude Include="VideoSource.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BackgroundExtractor.cpp" />
     <ClCompile Include="Shape.cpp" />
     <ClCompile Include="BoundingBox.cpp" />
     <ClCompile Include="ShapeHook.cpp" />
