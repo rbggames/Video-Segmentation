@@ -7,6 +7,7 @@
 #include "TrackedObject.h"
 #include "VideoSource.h"
 #include "BackgroundExtractor.h"
+#include "Evaluator.h"
 
 using namespace cv;
 using namespace std;
@@ -77,8 +78,26 @@ int find_contour(Mat image,cv::Rect2d* boundingBoxes, int maxBoundingBoxes)
 	return contours.size();
 }
 
+int findObjects(Mat frame, TrackedObject** trackedObjects,int numObjects, TrackedObject** newTrackedObjects) {//TODO: think about freeing newTrackedObjects
+	cv::Rect2d objectBoundingBoxes[maxObjects * 1000];
+	int objectsFound = find_contour(frame, objectBoundingBoxes, maxObjects * 1000);
+
+	trackedObjects = (TrackedObject**)malloc(maxObjects * sizeof(TrackedObject*));
+	// Display bounding box.
+	int i = 0, j = 0;
+	while (i < maxObjects && j < objectsFound) {
+		if (objectBoundingBoxes[j].area() > 12) {
+			rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
+			trackedObjects[i] = new TrackedObject(frame, objectBoundingBoxes[j], i);
+			i++;
+		}
+		j++;
+	}
+}
+
 int main(int argc, char **argv)
 {
+	ocl::setUseOpenCL(true);
 	RNG rng(12345);
 	TrackedObject** trackedObjects;
 
@@ -177,5 +196,11 @@ int main(int argc, char **argv)
 				k = waitKey(5);
 			}
 		}
+
+		//Evaluation
+		int numShapes;
+		Shape** shapes = video.getShapes(&numShapes);
+		Evaluator::evaluateSegments(shapes, numShapes, trackedObjects, numObjects);
+		
 	}
 }

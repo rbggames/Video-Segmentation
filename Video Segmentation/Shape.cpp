@@ -62,6 +62,31 @@ void Shape::initialise(int x, int y, int width, int height, const Point ** pts, 
 	motion_y = 1;
 }
 
+Mat Shape::getShapeFrameMat()
+{
+	return shapeFrameMat;
+}
+
+int Shape::getX()
+{
+	return x;
+}
+
+int Shape::getY()
+{
+	return y;
+}
+
+int Shape::getWidth()
+{
+	return width;
+}
+
+int Shape::getHeight()
+{
+	return height;
+}
+
 
 
 void Shape::draw(Mat input,int xPos, int yPos)
@@ -75,6 +100,7 @@ void Shape::draw(Mat input,int xPos, int yPos)
 	inRange(translated, Scalar(0, 0, 0), Scalar(0, 0, 0), fineMask);
 	bitwise_not(fineMask, fineMask);
 	translated.copyTo(input, fineMask);
+	translated.copyTo(shapeFrameMat);
 }
 
 

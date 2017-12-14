@@ -19,6 +19,12 @@
     <Filter Include="Header Files\VideoCreator">
       <UniqueIdentifier>{a7d39633-726c-407b-8154-053b2f2933c8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Evaluator">
+      <UniqueIdentifier>{3a496f1b-5497-4ed6-bad9-161231688571}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Evaluator">
+      <UniqueIdentifier>{b7d6f1b9-2ebd-4cb0-9fea-a5f558901d6e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -41,6 +47,12 @@
     </ClInclude>
     <ClInclude Include="BackgroundExtractor.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ShapeSquare.h">
+      <Filter>Header Files\VideoCreator</Filter>
+    </ClInclude>
+    <ClInclude Include="Evaluator.h">
+      <Filter>Header Files\Evaluator</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -70,6 +82,12 @@
     </ClCompile>
     <ClCompile Include="BackgroundExtractor.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ShapeSquare.cpp">
+      <Filter>Source Files\VideoCreator</Filter>
+    </ClCompile>
+    <ClCompile Include="Evaluator.cpp">
+      <Filter>Source Files\Evaluator</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -155,8 +155,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="BackgroundExtractor.h" />
+    <ClInclude Include="Evaluator.h" />
     <ClInclude Include="Shape.h" />
     <ClInclude Include="ShapeHook.h" />
+    <ClInclude Include="ShapeSquare.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TrackedObject.h" />
@@ -164,9 +166,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BackgroundExtractor.cpp" />
+    <ClCompile Include="Evaluator.cpp" />
     <ClCompile Include="Shape.cpp" />
     <ClCompile Include="BoundingBox.cpp" />
     <ClCompile Include="ShapeHook.cpp" />
+    <ClCompile Include="ShapeSquare.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

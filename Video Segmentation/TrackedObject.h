@@ -20,6 +20,7 @@ public:
 	bool update(Mat frame);
 	void drawSegment(Mat frame,bool isOverlap,Mat outputFrame);
 	bool boundingBoxOverlap(TrackedObject object);
+	Mat getObjectMat();
 private:
 	int id;
 	int positionIndex;

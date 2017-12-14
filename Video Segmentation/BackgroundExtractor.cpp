@@ -35,6 +35,13 @@ void BackgroundExtractor::update(Mat frame, TrackedObject** objects, int size)
 	imshow("back mask pre", mask);
 	for (int i = 0; i < size; i++) {
 		mask = mask - objects[i]->mask;
+		imshow("mask" + SSTR(i), objects[i]->mask);
+	}
+	//Dialate edges to close small gaps so contour detection creates one object
+	Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(3, 3));
+	for (int i = 0; i < 3; i++) {
+		//dilate(mask, mask, structuringElement);
+		erode(mask, mask, structuringElement);
 	}
 	imshow("back mask", mask);
 	frame.copyTo(background, mask);

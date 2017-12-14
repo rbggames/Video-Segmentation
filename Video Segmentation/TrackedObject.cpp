@@ -55,13 +55,14 @@ bool TrackedObject::update(Mat frame)
 {
 	//Update tracker
 	bool ok = tracker->update(frame, boundingBox);
+	double alpha = 0.1;
 
 	if (ok) {
-		// Update Positions and motion vector
+		// Update Positions and motion vector (rolling average)
 		previousPosition[positionIndex] = position;
 		position = boundingBox.tl();
-		motionVector.val[0] = position.x - previousPosition[positionIndex].x;
-		motionVector.val[1] = position.y - previousPosition[positionIndex].y;
+		motionVector.val[0] = alpha*(position.x - previousPosition[positionIndex].x) + (1 - alpha)*motionVector.val[0];
+		motionVector.val[1] = alpha*(position.y - previousPosition[positionIndex].y) + (1 - alpha)*motionVector.val[1];
 
 		positionIndex = (++positionIndex) % MAX_POSITIONS_TO_REMEMBER;
 	}
@@ -77,7 +78,9 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 		refineMask(frame, mask, boundingBox);
 		frame.copyTo(object, mask);
 
-		Mat(object, Rect(position.x, position.y, boundingBox.width, boundingBox.height)).copyTo(savedObject);
+		if(position.x > 0 && position.y >0 && boundingBox.width + position.x < object.cols && boundingBox.height + position.y < object.rows)
+			Mat(object, Rect(position.x, position.y, boundingBox.width, boundingBox.height)).copyTo(savedObject);
+		
 
 		putText(object, "Motion : mx=" + SSTR(motionVector.val[0]) + " my=" + SSTR(motionVector.val[1]), Point(100, 50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 0), 2);
 
@@ -97,10 +100,6 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 		//2) Place object
 		int height = boundingBox.height;
 		int width = boundingBox.width;
-		/*Point2f src[3] = { Point2f(0, 0), Point2f(0, 1),Point2f(1,0) };
-		Point2f dst[3] = { Point2f(motionVector.val[0], motionVector.val[1]),
-			Point2f(motionVector.val[0], motionVector.val[1] + 1),
-			Point2f(motionVector.val[0] + 1,motionVector.val[1]) };*/
 		Point2f src[3] = { Point2f(0, 0), Point2f(0,savedObject.rows - 1),Point2f(savedObject.cols - 1,savedObject.rows - 1) };
 		Point2f dst[3] = { Point2f(position.x, position.y), 
 			Point2f(position.x, savedObject.rows - 1 + position.y),
@@ -110,6 +109,14 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 		imshow("Saved " + SSTR(int(id)), savedObject);
 		Mat translationMat = getAffineTransform(src, dst);
 		warpAffine(savedObject, object, translationMat, object.size(), 1, BORDER_TRANSPARENT);
+
+		//move mask
+		Point2f src2[3] = { Point2f(0, 0), Point2f(0,100),Point2f(100,0) };
+		Point2f dst2[3] = { Point2f(motionVector[0], motionVector[1]),
+			Point2f(motionVector[0], motionVector[1]+100),
+			Point2f(motionVector[0]+100, motionVector[1]), };
+		translationMat = getAffineTransform(src2, dst2);
+		warpAffine(mask, mask, translationMat, object.size(), 1);
 
 		putText(object, "Motion : mx=" + SSTR(motionVector.val[0]) + " my=" + SSTR(motionVector.val[1]), Point(100, 50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 0), 2);
 		putText(object, "Predicting", Point(100, 150), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 0), 2);
@@ -172,4 +179,9 @@ bool TrackedObject::boundingBoxOverlap(TrackedObject object)
 	if (boundingBox.br().y <  object.boundingBox.tl().y) return false; // this is above object
 	if (boundingBox.tl().y > object.boundingBox.br().y) return false; // this is below object
 	return true; // bounding boxes overlap
+}
+
+Mat TrackedObject::getObjectMat()
+{
+	return object;
 }
