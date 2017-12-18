@@ -1,6 +1,6 @@
 #pragma once
 #include <opencv2/opencv.hpp>
-#include "TrackedObject.h"
+#include "TrackedObjects.h"
 
 using namespace cv;
 
@@ -11,7 +11,7 @@ public:
 	BackgroundExtractor(Mat frame,int threshold);
 	~BackgroundExtractor();
 	void update(Mat frame); 
-	void update(Mat frame, TrackedObject** objects, int size);
+	void update(Mat frame, TrackedObjects objects, int size);
 private:
 	int thresh;
 	Mat previousFrame,mask;

@@ -17,6 +17,21 @@ ShapeSquare::ShapeSquare(int x, int y, int width, Scalar colour)
 	initialise(x, y, width, width, pts, npt, colour);
 }
 
+ShapeSquare::ShapeSquare(int x, int y, int width, String texturePath)
+{
+	int w = width;
+	hook_points[0][0] = Point(0, 0);
+	hook_points[0][1] = Point(0, w);
+	hook_points[0][2] = Point(w, w);
+	hook_points[0][3] = Point(w, 0);
+
+
+	const Point* pts[1] = { hook_points[0] };
+
+	const int npt[1] = { 4 };
+	initialise(x, y, width, width, pts, npt, texturePath);
+}
+
 
 ShapeSquare::~ShapeSquare()
 {

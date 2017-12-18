@@ -44,6 +44,9 @@ TrackedObject::TrackedObject(Mat frame, Rect2d boundingBox_,int id_)
 	mask = Mat(frame.size(), CV_8U, Scalar(0));
 
 	refineMask(frame, mask, boundingBox);
+
+	if (position.x > 0 && position.y >0 && boundingBox.width + position.x < object.cols && boundingBox.height + position.y < object.rows)
+		Mat(object, Rect(position.x, position.y, boundingBox.width, boundingBox.height)).copyTo(savedObject);
 }
 
 
@@ -85,7 +88,7 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 		putText(object, "Motion : mx=" + SSTR(motionVector.val[0]) + " my=" + SSTR(motionVector.val[1]), Point(100, 50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 0), 2);
 
 		imshow("Tracked " + SSTR(int(id)), object);
-		//imshow("Mask " + SSTR(int(id)), mask);
+		imshow("Mask " + SSTR(int(id)), mask);
 		imshow("Saved " + SSTR(int(id)), savedObject);
 
 		//Draw bounding box on frame
@@ -130,7 +133,6 @@ void TrackedObject::refineMask(Mat frame, Mat mask, Rect2d boundingBox) {
 	Mat cannyFrame;
 	Canny(frame, cannyFrame, 100, 200);
 	mask.setTo(0);
-
 
 	//Initialise mask
 	rectangle(mask, boundingBox, Scalar(255), CV_FILLED);

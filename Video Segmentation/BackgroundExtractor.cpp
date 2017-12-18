@@ -25,7 +25,7 @@ void BackgroundExtractor::update(Mat frame)
 	frame.copyTo(previousFrame);
 }
 
-void BackgroundExtractor::update(Mat frame, TrackedObject** objects, int size)
+void BackgroundExtractor::update(Mat frame, TrackedObjects objects, int size)
 {
 	Mat diff;
 	absdiff(frame, previousFrame, diff);
@@ -34,8 +34,8 @@ void BackgroundExtractor::update(Mat frame, TrackedObject** objects, int size)
 	threshold(mask, mask, thresh, 255, THRESH_BINARY_INV);
 	imshow("back mask pre", mask);
 	for (int i = 0; i < size; i++) {
-		mask = mask - objects[i]->mask;
-		imshow("mask" + SSTR(i), objects[i]->mask);
+		mask = mask - objects.getTrackedObject(i)->mask;
+		imshow("mask" + SSTR(i), objects.getTrackedObject(i)->mask);
 	}
 	//Dialate edges to close small gaps so contour detection creates one object
 	Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(3, 3));

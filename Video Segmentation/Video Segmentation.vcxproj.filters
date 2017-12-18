@@ -54,6 +54,9 @@
     <ClInclude Include="Evaluator.h">
       <Filter>Header Files\Evaluator</Filter>
     </ClInclude>
+    <ClInclude Include="TrackedObjects.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -89,5 +92,19 @@
     <ClCompile Include="Evaluator.cpp">
       <Filter>Source Files\Evaluator</Filter>
     </ClCompile>
+    <ClCompile Include="TrackedObjects.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Images\lava.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Images\wall.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Images\wood.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

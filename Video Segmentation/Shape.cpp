@@ -22,6 +22,10 @@ Shape::Shape(int x, int y, int width, int height, const Point** pts, const int* 
 	initialise(x, y, width, height, pts, npt,colour);
 }
 
+Shape::Shape(int x, int y, int width, int height, const Point** pts, const int* npt, String texturePath) {
+	initialise(x, y, width, height, pts, npt, texturePath);
+}
+
 
 Shape::~Shape()
 {
@@ -60,6 +64,15 @@ void Shape::initialise(int x, int y, int width, int height, const Point ** pts, 
 	fillPoly(shapeMat, pts, npt, 1, colour, 8);
 	motion_x = 1;
 	motion_y = 1;
+}
+
+void Shape::initialise(int x, int y, int width, int height, const Point ** pts, const int * npt, String texturePath)
+{
+	initialise(x, y, width, height, pts, npt, Scalar(255, 255, 255));
+	Mat texture = imread(texturePath);
+	if (texture.cols > width && texture.rows > height) {
+		texture(Rect2d(0, 0, width, height)).copyTo(shapeMat, shapeMat);
+	}
 }
 
 Mat Shape::getShapeFrameMat()
