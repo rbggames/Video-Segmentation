@@ -4,12 +4,21 @@
 
 TrackedObject::TrackedObject(Mat frame, Rect2d boundingBox_,int id_)
 {
-	boundingBox = boundingBox_;
-	position = boundingBox.tl();
-	positionIndex = 0;
 	numFramesForLastMaskRefinement = 0;
 	id = id_;
 
+	updateTracker(frame, boundingBox_);
+}
+
+
+TrackedObject::~TrackedObject()
+{
+}
+
+void TrackedObject::updateTracker(Mat frame, Rect2d boundingBox_) {
+	boundingBox = boundingBox_;
+	position = boundingBox.tl();
+	positionIndex = 0;
 	// List of tracker types in OpenCV 3.2
 	// NOTE : GOTURN implementation is buggy and does not work.
 	string trackerTypes[6] = { "BOOSTING", "MIL", "KCF", "TLD","MEDIANFLOW", "GOTURN" };
@@ -19,24 +28,24 @@ TrackedObject::TrackedObject(Mat frame, Rect2d boundingBox_,int id_)
 	string trackerType = trackerTypes[2];
 
 #if (CV_MINOR_VERSION < 3)
-		{
-			tracker[i] = Tracker::create(trackerType);
-		}
+	{
+		tracker[i] = Tracker::create(trackerType);
+	}
 #else
-		{
-			if (trackerType == "BOOSTING")
-				tracker = TrackerBoosting::create();
-			if (trackerType == "MIL")
-				tracker = TrackerMIL::create();
-			if (trackerType == "KCF")
-				tracker = TrackerKCF::create();
-			if (trackerType == "TLD")
-				tracker = TrackerTLD::create();
-			if (trackerType == "MEDIANFLOW")
-				tracker = TrackerMedianFlow::create();
-			if (trackerType == "GOTURN")
-				tracker = TrackerGOTURN::create();
-		}
+	{
+		if (trackerType == "BOOSTING")
+			tracker = TrackerBoosting::create();
+		if (trackerType == "MIL")
+			tracker = TrackerMIL::create();
+		if (trackerType == "KCF")
+			tracker = TrackerKCF::create();
+		if (trackerType == "TLD")
+			tracker = TrackerTLD::create();
+		if (trackerType == "MEDIANFLOW")
+			tracker = TrackerMedianFlow::create();
+		if (trackerType == "GOTURN")
+			tracker = TrackerGOTURN::create();
+	}
 #endif
 
 	tracker->init(frame, boundingBox);
@@ -49,24 +58,29 @@ TrackedObject::TrackedObject(Mat frame, Rect2d boundingBox_,int id_)
 		Mat(object, Rect(position.x, position.y, boundingBox.width, boundingBox.height)).copyTo(savedObject);
 }
 
-
-TrackedObject::~TrackedObject()
-{
-}
-
 bool TrackedObject::update(Mat frame)
 {
 	//Update tracker
 	bool ok = tracker->update(frame, boundingBox);
-	double alpha = 0.1;
+	double alpha = 0.4;
 
 	if (ok) {
 		// Update Positions and motion vector (rolling average)
 		previousPosition[positionIndex] = position;
 		position = boundingBox.tl();
-		motionVector.val[0] = alpha*(position.x - previousPosition[positionIndex].x) + (1 - alpha)*motionVector.val[0];
-		motionVector.val[1] = alpha*(position.y - previousPosition[positionIndex].y) + (1 - alpha)*motionVector.val[1];
-
+		if (motionVector[0] != 0) {
+			motionVector.val[0] = alpha*(position.x - previousPosition[positionIndex].x) + (1 - alpha)*motionVector.val[0];
+		}else {
+			//Initialise
+			motionVector.val[0] = (position.x - previousPosition[positionIndex].x);
+		}
+		if(motionVector[1] != 0){
+			motionVector.val[1] = alpha*(position.y - previousPosition[positionIndex].y) +(1 - alpha)*motionVector.val[1];
+		}
+		else {
+			//Initialise
+			motionVector.val[1] = (position.y - previousPosition[positionIndex].y);
+		}
 		positionIndex = (++positionIndex) % MAX_POSITIONS_TO_REMEMBER;
 	}
 	return ok;

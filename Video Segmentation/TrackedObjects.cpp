@@ -41,9 +41,13 @@ int TrackedObjects::find(Mat frame)
 	trackedObjects = (TrackedObject**)malloc(maxObjects * sizeof(TrackedObject*));
 	int objectsFound = 0;
 	UMat flow;
-	Mat nextGrey, flowPolar, out(frame.rows, frame.cols, CV_8UC3);
-	cvtColor(frame, nextGrey, CV_BGR2GRAY);
-	calcOpticalFlowFarneback(prevFrame, nextGrey, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
+	Mat nextGray, flowPolar, out(frame.rows, frame.cols, CV_8UC3);
+	cvtColor(frame, nextGray, CV_BGR2GRAY);
+	UMat uPrevFrame, uNextGray;
+	prevFrame.copyTo(uPrevFrame);
+	nextGray.copyTo(uNextGray);
+	calcOpticalFlowFarneback(uPrevFrame, uNextGray, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
+	//TODO: try cuda::FarnebackOpticalFlow? 
 
 	vector<Mat> channels(2);
 	Mat angle, mag;
@@ -100,21 +104,22 @@ int TrackedObjects::find(Mat frame)
 			inRange(hsv[0], (i *10-5)/2, (i*10+15)/2 , mask);
 			inRange(hsv[2], 0, 30, maskV);
 			imshow("S", maskV);
-			Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(3, 3));
+			/*Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(10, 10));
 			dilate(mask, mask, structuringElement);
+			erode(mask, mask, structuringElement);*/
 			mask |= maskV;
 			imshow("Q"+SSTR(i), mask);
 			Mat masked;
 			frame.copyTo(masked, mask);
 			imshow("Masked"+SSTR(i*10), masked);
 			int potentialObjectsFound = find_contour(masked, objectBoundingBoxes, maxObjects * 1000);
-			//find(frame, objectBoundingBoxes, potentialObjectsFound, objectsFound);
-			//objectsFound += potentialObjectsFound;
+
 			int k = 0, j = 0;
 			while (k + objectsFound < maxObjects && j < potentialObjectsFound) {
-				if (objectBoundingBoxes[j].area() > 12) {
+				if (objectBoundingBoxes[j].area() > 200) {
 					//rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
 					trackedObjects[k + objectsFound] = new TrackedObject(frame, objectBoundingBoxes[j], k+objectsFound);
+					
 					k++;
 				}
 				j++;
@@ -246,6 +251,7 @@ int TrackedObjects::findObjects(Mat frame, TrackedObject** trackedObjects, int n
 
 
 void TrackedObjects::update(Mat frame, Mat outputFrame) {
+	cvtColor(frame, prevFrame, CV_BGR2GRAY);
 	for (int i = 0; i < numObjects; i++) {
 		bool ok = trackedObjects[i]->update(frame);
 		if (!ok)
