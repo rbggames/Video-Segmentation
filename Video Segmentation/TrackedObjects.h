@@ -6,12 +6,13 @@
 class TrackedObjects
 {
 public:
-	TrackedObjects();
+	TrackedObjects(Mat frame);
 	~TrackedObjects();
 
 	TrackedObject * getTrackedObject(int i);
 
-	int find(Mat frame, Rect2d * objectBoundingBoxes);
+	int find(Mat frame, Rect2d * objectBoundingBoxes, int objectsFound, int indexStart);
+
 	int find(Mat frame);
 
 	int find_contour(Mat image, cv::Rect2d * boundingBoxes, int maxBoundingBoxes);
@@ -26,5 +27,6 @@ public:
 private:
 	TrackedObject** trackedObjects;
 	Rect2d objectBoundingBoxes[1000];//TODO CHANGE
+	Mat prevFrame;
 };
 

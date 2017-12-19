@@ -24,17 +24,17 @@ int main(int argc, char **argv)
 {
 	ocl::setUseOpenCL(true);
 	RNG rng(12345);
-	//TrackedObject** trackedObjects;
-	TrackedObjects trackedObjects;
 
 	// Read first frame
-	Mat frame(600, 600, CV_8UC3), outputFrame, prevframe;
+	Mat frame(600, 600, CV_8UC3), outputFrame;
 
 	VideoSource video;
 	video.getFrame(frame);
 	//VideoCapture cap(0);
 	//cap.read(frame);
 
+
+	TrackedObjects trackedObjects(frame);
 
 	BackgroundExtractor background(frame, 10);
 	for (int i = 0; i < 10; i++) {
@@ -50,37 +50,15 @@ int main(int argc, char **argv)
 	
 	int num = 0;
 	//while(cap.read(frame))
-	cvtColor(frame, prevframe, CV_BGR2GRAY);
 	while (video.getFrame(frame))
 	{
-		UMat flow;
-		Mat nextGrey, flowPolar, out(frame.rows,frame.cols, CV_8UC3);
-		cvtColor(frame, nextGrey, CV_BGR2GRAY);
-		calcOpticalFlowFarneback(prevframe, nextGrey, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
-
-		vector<Mat> channels(2);
-		Mat angle, mag;
-		// split img:
-		split(flow, channels);
-		cartToPolar(channels[0],channels[1],mag,angle);
-		
-		Mat h(frame.size(), CV_8UC1), s(frame.size(), CV_8UC1), v(frame.size(), CV_8UC1);
-		Mat hsv[3];
-		hsv[0] = h; hsv[1] = s; hsv[2] = v;
-		split(out, hsv);
-
-		hsv[0] = (angle * 180 / 3.141592654 / 2);
-		normalize(mag, hsv[1], 255, 255, NORM_MINMAX);
-		normalize(mag, hsv[2], 0, 255, NORM_MINMAX);
-		merge(hsv, 3, out);
-		//hsv[1].setTo(254.9);
-		merge(hsv, 3, out);
-		cvtColor(out, out, CV_HSV2BGR);
-		imshow("Flow", out);
-
 		// Start timer
 		double timer = (double)getTickCount();
 
+		if (num % 5 == 0) {
+			numObjects = trackedObjects.find(frame);
+		}
+		num++;
 		frame.copyTo(outputFrame);
 
 		//TODO: Could be got from elsewhere
@@ -118,6 +96,5 @@ int main(int argc, char **argv)
 		int numShapes;
 		Shape** shapes = video.getShapes(&numShapes);
 		Evaluator::evaluateSegments(shapes, numShapes, trackedObjects, numObjects);
-		cvtColor(frame, prevframe, CV_BGR2GRAY);
 	}
 }

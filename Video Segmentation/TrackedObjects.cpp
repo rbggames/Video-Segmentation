@@ -4,9 +4,10 @@
 
 
 
-TrackedObjects::TrackedObjects()
+TrackedObjects::TrackedObjects(Mat frame)
 {
 	trackedObjects = (TrackedObject**)malloc(maxObjects * sizeof(TrackedObject*));
+	cvtColor(frame, prevFrame, CV_BGR2GRAY);
 }
 
 
@@ -18,15 +19,14 @@ TrackedObject* TrackedObjects::getTrackedObject(int i) {
 	return trackedObjects[i];
 }
 
-int TrackedObjects::find(Mat frame, Rect2d* objectBoundingBoxes) {
-	int objectsFound = find_contour(frame, objectBoundingBoxes, maxObjects * 1000);
-	trackedObjects = (TrackedObject**)malloc(maxObjects * sizeof(TrackedObject*));
+int TrackedObjects::find(Mat frame, Rect2d* objectBoundingBoxes,int objectsFound,int indexStart) {
+	//int objectsFound = find_contour(frame, objectBoundingBoxes, maxObjects * 1000);
 	// Display bounding box.
 	int i = 0, j = 0;
-	while (i < maxObjects && j < objectsFound) {
+	while (i+indexStart < maxObjects && j+indexStart < objectsFound) {
 		if (objectBoundingBoxes[j].area() > 12) {
 			//rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
-			trackedObjects[i] = new TrackedObject(frame, objectBoundingBoxes[j], i);
+			trackedObjects[i+indexStart] = new TrackedObject(frame, objectBoundingBoxes[j], i);
 			i++;
 		}
 		j++;
@@ -37,8 +37,98 @@ int TrackedObjects::find(Mat frame, Rect2d* objectBoundingBoxes) {
 
 int TrackedObjects::find(Mat frame)
 {
-	int objectsFound = find_contour(frame, objectBoundingBoxes, maxObjects * 1000);
-	return find(frame,objectBoundingBoxes);
+
+	trackedObjects = (TrackedObject**)malloc(maxObjects * sizeof(TrackedObject*));
+	int objectsFound = 0;
+	UMat flow;
+	Mat nextGrey, flowPolar, out(frame.rows, frame.cols, CV_8UC3);
+	cvtColor(frame, nextGrey, CV_BGR2GRAY);
+	calcOpticalFlowFarneback(prevFrame, nextGrey, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
+
+	vector<Mat> channels(2);
+	Mat angle, mag;
+	// split img:
+	split(flow, channels);
+	cartToPolar(channels[0], channels[1], mag, angle, true);
+
+	Mat hsv[3];
+	split(out, hsv);
+
+	hsv[0] = (angle / 2);
+	normalize(mag, hsv[1], 255, 255, NORM_MINMAX);
+	normalize(mag, hsv[2], 0, 255, NORM_MINMAX);
+	merge(hsv, 3, out);
+	//hsv[1].setTo(254.9);
+	merge(hsv, 3, out);
+	cvtColor(out, out, CV_HSV2BGR);
+	imshow("Flow", out);
+
+	Mat hist;
+	/// Establish the number of bins
+	int histSize = 36;
+	int hist_w = 512; int hist_h = 400;
+	int bin_w = cvRound((double)hist_w / histSize);
+
+	Mat histImage(hist_h, hist_w, CV_8UC3, Scalar(0, 0, 0));
+
+
+	/// Set the ranges ( for H) )
+	float range[] = { 1, 360 };
+	const float* histRange = { range };
+
+	bool uniform = true; bool accumulate = false;
+
+	/// Compute the histograms:
+	calcHist(&angle, 1, 0, Mat(), hist, 1, &histSize, &histRange, uniform, accumulate);
+	//Mat inverseS;
+	//threshold(hsv[1], inverseS, 2, 1, THRESH_BINARY_INV);
+	//std::cout << "/n" +SSTR(hist.at<float>(0))+" " +SSTR(hist.at<float>(1)) +"/n";// sum(inverseS)[0];//Remove background;
+	for (int i = 0; i < 36; i++) {
+		std::cout << SSTR(hist.at<float>(i)) + "\n";
+	}
+	//normalize(hist, hist, 0, hist.rows, NORM_MINMAX);
+
+	for (int i = 0; i < histSize; i++)
+	{
+		if (hist.at<float>(i) > 350) {
+			line(histImage, Point(bin_w*(i), hist_h),
+				Point(bin_w*(i), hist_h - cvRound(hist.at<float>(i))),
+				Scalar(255, 0, 0), 2, 8, 0);
+			//get masks
+			Mat mask;
+			Mat maskV;
+			inRange(hsv[0], (i *10-5)/2, (i*10+15)/2 , mask);
+			inRange(hsv[2], 0, 30, maskV);
+			imshow("S", maskV);
+			Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(3, 3));
+			dilate(mask, mask, structuringElement);
+			mask |= maskV;
+			imshow("Q"+SSTR(i), mask);
+			Mat masked;
+			frame.copyTo(masked, mask);
+			imshow("Masked"+SSTR(i*10), masked);
+			int potentialObjectsFound = find_contour(masked, objectBoundingBoxes, maxObjects * 1000);
+			//find(frame, objectBoundingBoxes, potentialObjectsFound, objectsFound);
+			//objectsFound += potentialObjectsFound;
+			int k = 0, j = 0;
+			while (k + objectsFound < maxObjects && j < potentialObjectsFound) {
+				if (objectBoundingBoxes[j].area() > 12) {
+					//rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
+					trackedObjects[k + objectsFound] = new TrackedObject(frame, objectBoundingBoxes[j], k+objectsFound);
+					k++;
+				}
+				j++;
+			}
+			objectsFound += k;
+			
+		}
+	}
+	/// Display
+	imshow("calcHist Demo", histImage);
+	cvtColor(frame, prevFrame, CV_BGR2GRAY);
+	numObjects = objectsFound;
+	return objectsFound;
+	
 }
 
 int TrackedObjects::find_contour(Mat image, cv::Rect2d* boundingBoxes, int maxBoundingBoxes)

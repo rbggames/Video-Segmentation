@@ -88,8 +88,8 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 		putText(object, "Motion : mx=" + SSTR(motionVector.val[0]) + " my=" + SSTR(motionVector.val[1]), Point(100, 50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 0), 2);
 
 		imshow("Tracked " + SSTR(int(id)), object);
-		imshow("Mask " + SSTR(int(id)), mask);
-		imshow("Saved " + SSTR(int(id)), savedObject);
+		//imshow("Mask " + SSTR(int(id)), mask);
+		//imshow("Saved " + SSTR(int(id)), savedObject);
 
 		//Draw bounding box on frame
 		rectangle(outputFrame, boundingBox, Scalar(255, 0, 0), 2, 1);
@@ -109,7 +109,7 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 			Point2f(savedObject.cols - 1 + position.x, savedObject.rows - 1 + position.y) };
 
 
-		imshow("Saved " + SSTR(int(id)), savedObject);
+		//imshow("Saved " + SSTR(int(id)), savedObject);
 		Mat translationMat = getAffineTransform(src, dst);
 		warpAffine(savedObject, object, translationMat, object.size(), 1, BORDER_TRANSPARENT);
 
