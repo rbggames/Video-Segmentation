@@ -7,9 +7,9 @@
 VideoSource::VideoSource()
 {
 	int w = 60;
-	shapes[0] = new ShapeHook(200, 300, w,"Images\\wood.jpg");
-	shapes[0]->setMotionVector(1.0, -1.0);
-	shapes[1] = new ShapeHook(400, 330, w, "Images\\wall.jpg");
+	shapes[0] = new ShapeHook(200, 300, w,"Images\\bright.jpg");
+	shapes[0]->setMotionVector(1.0, 0.0);
+	shapes[1] = new ShapeHook(400, 330, w, "Images\\wood.jpg");
 	shapes[1]->setMotionVector(-1.0, 0.0);
 
 	shapes[2] = new ShapeSquare(200, 300, w, "Images\\lava.jpg");
@@ -32,7 +32,10 @@ VideoSource::~VideoSource()
 
 bool VideoSource::getFrame(Mat frame)
 {
-	frame.setTo(Scalar(0, 0, 0));
+	Mat backgroundImg;
+	backgroundImg = imread("Images\\background.jpg");
+	backgroundImg(Rect2d(0,0, frame.cols, frame.rows)).copyTo(frame);
+	//frame.setTo(Scalar(0, 0, 0));
 	for (int i = 0; i < numShapes; i++)
 		shapes[i]->updateDraw(frame);
 	return true;

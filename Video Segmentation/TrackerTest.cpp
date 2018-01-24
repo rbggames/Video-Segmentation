@@ -11,6 +11,8 @@
 #include "Evaluator.h"
 #include <math.h>
 
+#include "Utilities.h"
+
 using namespace cv;
 using namespace std;
 
@@ -27,10 +29,14 @@ int main(int argc, char **argv)
 
 	// Read first frame
 	Mat frame(600, 600, CV_8UC3), outputFrame;
-
+	//Mat frame, outputFrame;
+	//imread("Images//background.jpg");
 	VideoSource video;
 	video.getFrame(frame);
-	//VideoCapture cap(0);
+
+	int numObjects=0;
+	int num = 0;
+	//VideoCapture cap("video.avi");
 	//cap.read(frame);
 
 
@@ -39,6 +45,11 @@ int main(int argc, char **argv)
 	BackgroundExtractor background(frame, 10);
 	for (int i = 0; i < 10; i++) {
 		video.getFrame(frame);
+		if (num % 5 == 0) {
+			//numObjects = trackedObjects.find(frame);
+		}
+		//trackedObjects.update(frame, outputFrame);
+		num++;
 	}
 	background.update(frame);
 
@@ -46,17 +57,22 @@ int main(int argc, char **argv)
 
 	// Display bounding box.
 	//cap.read(frame);
-	int numObjects = trackedObjects.find(frame);
-	
-	int num = 0;
 	//while(cap.read(frame))
+	Mat prevFrame;
+	frame.copyTo(prevFrame);
 	while (video.getFrame(frame))
 	{
+		Utilities::get_object_contours(frame, prevFrame, 1000);
+
+		frame.copyTo(prevFrame);
+		imshow("framea", frame);
+		imshow("frameb", prevFrame);
+
 		// Start timer
 		double timer = (double)getTickCount();
-
-		if (num % 5 == 0) {
-			numObjects = trackedObjects.find(frame);
+		Mat forground = background.getForground();
+		if (num % 1 == 0) {
+			//numObjects = trackedObjects.find(frame);
 		}
 		num++;
 		frame.copyTo(outputFrame);
@@ -65,9 +81,9 @@ int main(int argc, char **argv)
 		Mat cannyFrame;
 		Canny(frame, cannyFrame, 30, 200);
 
-		trackedObjects.update(frame, outputFrame);
+		//trackedObjects.update(frame, outputFrame);
 		background.update(frame,trackedObjects,numObjects);
-
+		//background.update(frame);
 
 		// Calculate Frames per second (FPS)
 		float fps = getTickFrequency() / ((double)getTickCount() - timer);
@@ -95,6 +111,6 @@ int main(int argc, char **argv)
 		//Evaluation
 		int numShapes;
 		Shape** shapes = video.getShapes(&numShapes);
-		Evaluator::evaluateSegments(shapes, numShapes, trackedObjects, numObjects);
+		//Evaluator::evaluateSegments(shapes, numShapes, trackedObjects, numObjects);
 	}
 }

@@ -137,7 +137,7 @@
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -163,6 +163,7 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TrackedObject.h" />
     <ClInclude Include="TrackedObjects.h" />
+    <ClInclude Include="Utilities.h" />
     <ClInclude Include="VideoSource.h" />
   </ItemGroup>
   <ItemGroup>
@@ -181,13 +182,18 @@
     <ClCompile Include="TrackedObject.cpp" />
     <ClCompile Include="TrackedObjects.cpp" />
     <ClCompile Include="TrackerTest.cpp" />
+    <ClCompile Include="Utilities.cpp" />
     <ClCompile Include="Video Segmentation.cpp" />
     <ClCompile Include="VideoSource.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Images\lava.jpg" />
+    <Image Include="Images\background.jpg" />
+    <Image Include="Images\bright.jpg" />
     <Image Include="Images\wall.jpg" />
     <Image Include="Images\wood.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\..\..\..\Downloads\cuda_flow\video.avi" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

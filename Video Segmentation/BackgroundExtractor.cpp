@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "BackgroundExtractor.h"
 
-
 BackgroundExtractor::BackgroundExtractor(Mat frame, int threshold_)
 {
 	frame.copyTo(previousFrame);
@@ -14,11 +13,13 @@ BackgroundExtractor::~BackgroundExtractor()
 
 void BackgroundExtractor::update(Mat frame)
 {
+	forground.setTo(Scalar(0, 0, 0));
 	Mat diff;
 	absdiff(frame, previousFrame, diff);
 	imshow("diff", diff);
 	cvtColor(diff, mask, CV_BGR2GRAY);
 	threshold(mask, mask, thresh, 255, THRESH_BINARY_INV);
+	frame.copyTo(forground, 1 - mask);
 	frame.copyTo(background, mask);
 	imshow("Background", background);
 
@@ -27,6 +28,7 @@ void BackgroundExtractor::update(Mat frame)
 
 void BackgroundExtractor::update(Mat frame, TrackedObjects objects, int size)
 {
+	forground.setTo(Scalar(0, 0, 0));
 	Mat diff;
 	absdiff(frame, previousFrame, diff);
 	imshow("diff", diff);
@@ -44,7 +46,13 @@ void BackgroundExtractor::update(Mat frame, TrackedObjects objects, int size)
 		erode(mask, mask, structuringElement);
 	}
 	//imshow("back mask", mask);
+	frame.copyTo(forground, 1 - mask);
 	frame.copyTo(background, mask);
 	imshow("Background", background);
 	frame.copyTo(previousFrame);
+}
+
+Mat BackgroundExtractor::getForground()
+{
+	return forground;
 }

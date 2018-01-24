@@ -57,6 +57,9 @@
     <ClInclude Include="TrackedObjects.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Utilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -95,16 +98,27 @@
     <ClCompile Include="TrackedObjects.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Utilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Images\lava.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
     <Image Include="Images\wall.jpg">
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="Images\wood.jpg">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="Images\background.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Images\bright.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\..\..\..\Downloads\cuda_flow\video.avi">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

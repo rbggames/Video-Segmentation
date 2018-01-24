@@ -2,7 +2,7 @@
 #include "TrackedObjects.h"
 #include "Evaluator.h"
 
-
+#include "opencv2/xfeatures2d.hpp"
 
 TrackedObjects::TrackedObjects(Mat frame)
 {
@@ -14,6 +14,21 @@ TrackedObjects::TrackedObjects(Mat frame)
 TrackedObjects::~TrackedObjects()
 {
 }
+
+
+bool isAngleBetween(double angle, double bound1, double bound2) {
+	//n = (360 + (n % 360)) % 360;
+	angle = fmod(360 + fmod(angle, 360), 360);
+	//a = (3600000 + a) % 360;
+	bound1 = fmod(3600000 + bound1, 360);
+	//b = (3600000 + b) % 360;
+	bound2 = fmod(3600000 + bound2, 360);
+
+	if (bound1 < bound2)
+		return bound1 <= angle && angle <= bound2;
+	return bound1 <= angle || angle <= bound2;
+}
+
 
 TrackedObject* TrackedObjects::getTrackedObject(int i) {
 	return trackedObjects[i];
@@ -35,19 +50,24 @@ int TrackedObjects::find(Mat frame, Rect2d* objectBoundingBoxes,int objectsFound
 	return numObjects;
 }
 
+UMat flow;
 int TrackedObjects::find(Mat frame)
 {
 
-	trackedObjects = (TrackedObject**)malloc(maxObjects * sizeof(TrackedObject*));
+	//trackedObjects = (TrackedObject**)malloc(maxObjects * sizeof(TrackedObject*));
 	int objectsFound = 0;
-	UMat flow;
 	Mat nextGray, flowPolar, out(frame.rows, frame.cols, CV_8UC3);
+
 	cvtColor(frame, nextGray, CV_BGR2GRAY);
-	UMat uPrevFrame, uNextGray;
+	UMat uPrevFrame, uNextGray;//TODO: UMat
 	prevFrame.copyTo(uPrevFrame);
 	nextGray.copyTo(uNextGray);
+	imshow("prev", uPrevFrame);
+	imshow("next", uNextGray);
+	//calcOpticalFlowFarneback(uPrevFrame, uNextGray, flow, 0.5, 5, 30,30, 5, 1.2, OPTFLOW_USE_INITIAL_FLOW);
 	calcOpticalFlowFarneback(uPrevFrame, uNextGray, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
 	//TODO: try cuda::FarnebackOpticalFlow? 
+
 
 	vector<Mat> channels(2);
 	Mat angle, mag;
@@ -81,15 +101,22 @@ int TrackedObjects::find(Mat frame)
 	const float* histRange = { range };
 
 	bool uniform = true; bool accumulate = false;
+	
+	//discard small motions
+	Mat smallMotionMask;
+	threshold(hsv[2], smallMotionMask, 255, 200,THRESH_BINARY);
+	imshow("sm", smallMotionMask);
+	smallMotionMask.convertTo(smallMotionMask, CV_8U);
+	angle.setTo(0, smallMotionMask);
 
 	/// Compute the histograms:
 	calcHist(&angle, 1, 0, Mat(), hist, 1, &histSize, &histRange, uniform, accumulate);
 	//Mat inverseS;
 	//threshold(hsv[1], inverseS, 2, 1, THRESH_BINARY_INV);
 	//std::cout << "/n" +SSTR(hist.at<float>(0))+" " +SSTR(hist.at<float>(1)) +"/n";// sum(inverseS)[0];//Remove background;
-	for (int i = 0; i < 36; i++) {
+	/*for (int i = 0; i < 36; i++) {
 		std::cout << SSTR(hist.at<float>(i)) + "\n";
-	}
+	}*/
 	//normalize(hist, hist, 0, hist.rows, NORM_MINMAX);
 
 	for (int i = 0; i < histSize; i++)
@@ -101,26 +128,107 @@ int TrackedObjects::find(Mat frame)
 			//get masks
 			Mat mask;
 			Mat maskV;
-			inRange(hsv[0], (i *10-5)/2, (i*10+15)/2 , mask);
-			inRange(hsv[2], 0, 30, maskV);
-			imshow("S", maskV);
+			inRange(hsv[0], (i *10-15)/2, (i*10+25)/2 , mask);
+			inRange(hsv[2], 30, 255, maskV);
+			imshow("S", mask);
 			/*Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(10, 10));
 			dilate(mask, mask, structuringElement);
 			erode(mask, mask, structuringElement);*/
-			mask |= maskV;
-			imshow("Q"+SSTR(i), mask);
+			mask &= maskV;
+			//imshow("q", mask);
+			//mask |= ~smallMotionMask;//remove small motion areas
+			//imshow("Sqq", mask);
+			//imshow("Q"+SSTR(i), mask);
 			Mat masked;
 			frame.copyTo(masked, mask);
-			imshow("Masked"+SSTR(i*10), masked);
+			//imshow("Masked"+SSTR(i*10), masked);
 			int potentialObjectsFound = find_contour(masked, objectBoundingBoxes, maxObjects * 1000);
 
-			int k = 0, j = 0;
+			int k = 0;
+			int j = 0;
 			while (k + objectsFound < maxObjects && j < potentialObjectsFound) {
 				if (objectBoundingBoxes[j].area() > 200) {
 					//rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
-					trackedObjects[k + objectsFound] = new TrackedObject(frame, objectBoundingBoxes[j], k+objectsFound);
+					//trackedObjects[k + objectsFound] = new TrackedObject(frame, objectBoundingBoxes[j], k+objectsFound);
+
+					bool foundExistingObject = false;
+					for (int objectId = 0; objectId < numObjects; objectId++) {
+						//If overlap
+						//Expand to group separate bits
+						int expandingFactor = 50;
+						Rect2d expandedBoundingBox(objectBoundingBoxes[j].tl().x-expandingFactor, objectBoundingBoxes[j].tl().y-expandingFactor,
+							objectBoundingBoxes[j].width +2*expandingFactor, objectBoundingBoxes[j].height+2*expandingFactor);
+						if (((expandedBoundingBox & trackedObjects[objectId]->getBoundingBox()).area() > 0)){
+							//If going in same direction
+							Vec2d objectMotionVector = trackedObjects[objectId]->motionVector;//getMotionVector();
+							float angle = cvFastArctan(trackedObjects[objectId]->motionVector.val[1], trackedObjects[objectId]->motionVector.val[0]);
+							printf("x%f y%f %f angle \n", trackedObjects[objectId]->motionVector.val[0], trackedObjects[objectId]->motionVector.val[1],angle);
+							if (isAngleBetween(angle,(i * 10 - 15), (i * 10 + 25))) {
+								trackedObjects[objectId]->updateTracker(frame,objectBoundingBoxes[j]);
+								foundExistingObject = true;
+								break;
+							}
+						}
+					}
 					
+					if (!foundExistingObject && objectBoundingBoxes[j].area() > 30 && numObjects < maxObjects) {
+						trackedObjects[numObjects] = new TrackedObject(frame, objectBoundingBoxes[j], numObjects);
+						numObjects++;
+					}
 					k++;
+
+					/*
+					//Ptr<cv::xfeatures2d::SIFT> sift = xfeatures2d::SIFT::create();
+					Ptr<cv::xfeatures2d::SURF> sift = xfeatures2d::SURF::create();
+					sift->setHessianThreshold(400);
+
+					Mat img_1 = frame(objectBoundingBoxes[j]);
+					Mat img_2 = trackedObjects[max(k + objectsFound - 1,0)]->getObjectMat();
+					std::vector<KeyPoint> keypoints_1, keypoints_2;
+					Mat descriptors_1, descriptors_2;
+					sift->detectAndCompute(img_1, Mat(), keypoints_1, descriptors_1);
+					sift->detectAndCompute(img_2, Mat(), keypoints_2, descriptors_2);
+
+
+					//-- Step 2: Matching descriptor vectors using FLANN matcher
+					FlannBasedMatcher matcher;
+					std::vector< DMatch > matches;
+					matcher.match(descriptors_1, descriptors_2, matches);
+					double max_dist = 0; double min_dist = 100;
+					//-- Quick calculation of max and min distances between keypoints
+					for (int i = 0; i < descriptors_1.rows; i++)
+					{
+						double dist = matches[i].distance;
+						if (dist < min_dist) min_dist = dist;
+						if (dist > max_dist) max_dist = dist;
+					}
+					printf("-- Max dist : %f \n", max_dist);
+					printf("-- Min dist : %f \n", min_dist);
+					//-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist,
+					//-- or a small arbitary value ( 0.02 ) in the event that min_dist is very
+					//-- small)
+					//-- PS.- radiusMatch can also be used here.
+					std::vector< DMatch > good_matches;
+					for (int i = 0; i < descriptors_1.rows; i++)
+					{
+						if (matches[i].distance <= max(2 * min_dist, 0.02))
+						{
+							good_matches.push_back(matches[i]);
+						}
+					}
+					//-- Draw only "good" matches
+					Mat img_matches(1920,1080,CV_8UC3);
+					drawMatches(img_1, keypoints_1, img_2, keypoints_2,
+						good_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
+						vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+					//-- Show detected matches
+					imshow("Good Matches"+SSTR(k+objectsFound), img_matches);
+					for (int i = 0; i < (int)good_matches.size(); i++)
+					{
+						printf("-- Good Match%d [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", k+objectsFound,i, good_matches[i].queryIdx, good_matches[i].trainIdx);
+					}*/
+
+					
 				}
 				j++;
 			}
@@ -131,8 +239,8 @@ int TrackedObjects::find(Mat frame)
 	/// Display
 	imshow("calcHist Demo", histImage);
 	cvtColor(frame, prevFrame, CV_BGR2GRAY);
-	numObjects = objectsFound;
-	return objectsFound;
+	//numObjects = objectsFound;
+	return numObjects;
 	
 }
 
@@ -253,11 +361,13 @@ int TrackedObjects::findObjects(Mat frame, TrackedObject** trackedObjects, int n
 void TrackedObjects::update(Mat frame, Mat outputFrame) {
 	cvtColor(frame, prevFrame, CV_BGR2GRAY);
 	for (int i = 0; i < numObjects; i++) {
-		bool ok = trackedObjects[i]->update(frame);
-		if (!ok)
-		{
-			// Tracking failure detected.
-			putText(frame, "Tracking failure detected", Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 255), 2);
+		if (trackedObjects[i]) {
+			bool ok = trackedObjects[i]->update(frame);
+			if (!ok)
+			{
+				// Tracking failure detected.
+				putText(frame, "Tracking failure detected", Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 255), 2);
+			}
 		}
 	}
 	for (int i = 0; i < numObjects; i++) {
@@ -271,3 +381,4 @@ void TrackedObjects::update(Mat frame, Mat outputFrame) {
 		trackedObjects[i]->drawSegment(frame, isOverlap, outputFrame);
 	}
 }
+

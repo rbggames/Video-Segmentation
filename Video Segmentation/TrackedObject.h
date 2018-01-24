@@ -23,6 +23,10 @@ public:
 	void drawSegment(Mat frame,bool isOverlap,Mat outputFrame);
 	bool boundingBoxOverlap(TrackedObject object);
 	Mat getObjectMat();
+	Rect2d getBoundingBox();
+	Vec2d getMotionVector();
+
+	Vec2d motionVector;//TODO Change to private
 private:
 	int id;
 	int positionIndex;
@@ -30,7 +34,6 @@ private:
 	Rect2d boundingBox;
 	Point position;
 	Point previousPosition[5];
-	Vec2d motionVector;
 	Mat object;
 	Mat savedObject;
 	Ptr<Tracker> tracker;

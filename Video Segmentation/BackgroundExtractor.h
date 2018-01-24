@@ -12,8 +12,9 @@ public:
 	~BackgroundExtractor();
 	void update(Mat frame); 
 	void update(Mat frame, TrackedObjects objects, int size);
+	Mat getForground();
 private:
 	int thresh;
-	Mat previousFrame,mask;
+	Mat previousFrame,mask,forground;
 };
 

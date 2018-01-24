@@ -26,7 +26,8 @@ public:
 	RNG rng;
 private:
 	TrackedObject** trackedObjects;
-	Rect2d objectBoundingBoxes[1000];//TODO CHANGE
+	Rect2d objectBoundingBoxes[3000];//TODO CHANGE
 	Mat prevFrame;
+
 };
 
