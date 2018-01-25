@@ -17,8 +17,6 @@ public:
 	TrackedObject(Mat frame, Rect2d boundingBox,int id_);
 	~TrackedObject();
 
-	void updateTracker(Mat frame, Rect2d boundingBox);
-
 	bool update(Mat frame);
 	void drawSegment(Mat frame,bool isOverlap,Mat outputFrame);
 	bool boundingBoxOverlap(TrackedObject object);
