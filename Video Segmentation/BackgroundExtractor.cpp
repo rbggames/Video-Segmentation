@@ -46,9 +46,18 @@ void BackgroundExtractor::update(Mat frame, TrackedObjects objects, int size)
 		erode(mask, mask, structuringElement);
 	}
 	//imshow("back mask", mask);
-	frame.copyTo(forground, 1 - mask);
+
 	frame.copyTo(background, mask);
 	imshow("Background", background);
+
+
+	absdiff(background, frame, diff);
+	imshow("diff", diff);
+	cvtColor(diff, mask, CV_BGR2GRAY);
+	threshold(mask, mask, thresh, 255, THRESH_BINARY_INV);
+	forground.setTo(0);
+	frame.copyTo(forground, 1 - mask);
+	imshow("forground", forground);
 	frame.copyTo(previousFrame);
 }
 

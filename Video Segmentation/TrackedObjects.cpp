@@ -78,7 +78,7 @@ int TrackedObjects::find(Mat frame)
 	Mat hsv[3];
 	split(out, hsv);
 
-	hsv[0] = (angle / 2);
+	hsv[0] = (angle );
 	normalize(mag, hsv[1], 255, 255, NORM_MINMAX);
 	normalize(mag, hsv[2], 0, 255, NORM_MINMAX);
 	merge(hsv, 3, out);
@@ -128,9 +128,9 @@ int TrackedObjects::find(Mat frame)
 			//get masks
 			Mat mask;
 			Mat maskV;
-			inRange(hsv[0], (i *10-15)/2, (i*10+25)/2 , mask);
+			inRange(hsv[0], (i *10-25), (i*10+25) , mask);
 			inRange(hsv[2], 30, 255, maskV);
-			imshow("S", mask);
+			//imshow("S"+SSTR(i), mask);
 			/*Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(10, 10));
 			dilate(mask, mask, structuringElement);
 			erode(mask, mask, structuringElement);*/
@@ -163,9 +163,9 @@ int TrackedObjects::find(Mat frame)
 							Vec2d objectMotionVector = trackedObjects[objectId]->motionVector;//getMotionVector();
 							float angle = cvFastArctan(trackedObjects[objectId]->motionVector.val[1], trackedObjects[objectId]->motionVector.val[0]);
 							printf("x%f y%f %f angle \n", trackedObjects[objectId]->motionVector.val[0], trackedObjects[objectId]->motionVector.val[1],angle);
-							if (isAngleBetween(angle,(i * 10 - 15), (i * 10 + 25))) {
-								trackedObjects[objectId]->updateTracker(frame,objectBoundingBoxes[j]);
-								foundExistingObject = true;
+							if (isAngleBetween(angle,(i * 10 - 25), (i * 10 + 25))) {
+								//trackedObjects[objectId]->updateTracker(frame,objectBoundingBoxes[j]);
+								//foundExistingObject = true;
 								break;
 							}
 						}

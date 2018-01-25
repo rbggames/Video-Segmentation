@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "TrackedObject.h"
-
+#include "Utilities.h"
 
 TrackedObject::TrackedObject(Mat frame, Rect2d boundingBox_,int id_)
 {
@@ -136,6 +136,7 @@ void TrackedObject::updateTracker(Mat frame, Rect2d boundingBox_) {
 	imshow("P"+SSTR(id), potentalObject);
 	
 	//find_contour(frame(boundingToFindObject), newBoundingBoxes, 1);
+	Utilities::find_boundingBoxes(frame(boundingToFindObject), newBoundingBoxes, 1);
 	
 	boundingBox.x = newBoundingBoxes[0].x + boundingBox.x - expandingFactor ;
 	boundingBox.y = newBoundingBoxes[0].y + boundingBox.y - expandingFactor ;
@@ -154,8 +155,8 @@ void TrackedObject::updateTracker(Mat frame, Rect2d boundingBox_) {
 		previousPosition[i].y -= yOffset;
 	}
 
-	tracker->clear();
-	tracker->init(frame, boundingBox);
+	//tracker->clear();
+	//tracker->init(frame, boundingBox);
 	
 	refineMask(frame, mask, boundingBox);
 	frame.copyTo(object, mask);
@@ -221,7 +222,7 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 		putText(object, "Motion : mx=" + SSTR(motionVector.val[0]) + " my=" + SSTR(motionVector.val[1]), Point(100, 50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 0), 2);
 
 		imshow("Tracked " + SSTR(int(id)), object);
-		//imshow("Mask " + SSTR(int(id)), mask);
+		imshow("Mask " + SSTR(int(id)), mask);
 		//imshow("Saved " + SSTR(int(id)), savedObject);
 
 		//Draw bounding box on frame
