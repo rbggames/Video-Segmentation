@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "TrackedObjects.h"
 #include "Evaluator.h"
+#include "Utilities.h"
 
 
 
@@ -22,7 +23,7 @@ TrackedObject* TrackedObjects::getTrackedObject(int i) {
 int TrackedObjects::find(Mat frame, Rect2d* objectBoundingBoxes,int objectsFound,int indexStart) {
 	//int objectsFound = find_contour(frame, objectBoundingBoxes, maxObjects * 1000);
 	// Display bounding box.
-	int i = 0, j = 0;
+	/*int i = 0, j = 0;
 	while (i+indexStart < maxObjects && j+indexStart < objectsFound) {
 		if (objectBoundingBoxes[j].area() > 12) {
 			//rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
@@ -31,14 +32,14 @@ int TrackedObjects::find(Mat frame, Rect2d* objectBoundingBoxes,int objectsFound
 		}
 		j++;
 	}
-	numObjects = i;
+	numObjects = i;*/
 	return numObjects;
 }
 
 int TrackedObjects::find(Mat frame)
 {
-
-	trackedObjects = (TrackedObject**)malloc(maxObjects * sizeof(TrackedObject*));
+	if(!trackedObjects)
+		trackedObjects = (TrackedObject**)malloc(maxObjects * sizeof(TrackedObject*));
 	int objectsFound = 0;
 	UMat flow;
 	Mat nextGrey, flowPolar, out(frame.rows, frame.cols, CV_8UC3);
@@ -54,7 +55,7 @@ int TrackedObjects::find(Mat frame)
 	Mat hsv[3];
 	split(out, hsv);
 
-	hsv[0] = (angle / 2);
+	hsv[0] = (angle);
 	normalize(mag, hsv[1], 255, 255, NORM_MINMAX);
 	normalize(mag, hsv[2], 0, 255, NORM_MINMAX);
 	merge(hsv, 3, out);
@@ -97,7 +98,7 @@ int TrackedObjects::find(Mat frame)
 			//get masks
 			Mat mask;
 			Mat maskV;
-			inRange(hsv[0], (i *10-5)/2, (i*10+15)/2 , mask);
+			inRange(hsv[0], (i *10-5), (i*10+15) , mask);
 			inRange(hsv[2], 0, 30, maskV);
 			imshow("S", maskV);
 			Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(3, 3));
@@ -114,7 +115,34 @@ int TrackedObjects::find(Mat frame)
 			while (k + objectsFound < maxObjects && j < potentialObjectsFound) {
 				if (objectBoundingBoxes[j].area() > 12) {
 					//rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
-					trackedObjects[k + objectsFound] = new TrackedObject(frame, objectBoundingBoxes[j], k+objectsFound);
+					//trackedObjects[k + objectsFound] = new TrackedObject(frame, objectBoundingBoxes[j], k+objectsFound);
+					
+					bool foundExistingObject = false;
+					for (int objectId = 0; objectId < numObjects; objectId++) {
+						//If overlap
+						//Expand to group separate bits
+						int expandingFactor = 50;
+						Rect2d expandedBoundingBox(objectBoundingBoxes[j].tl().x - expandingFactor, objectBoundingBoxes[j].tl().y - expandingFactor,
+							objectBoundingBoxes[j].width + 2 * expandingFactor, objectBoundingBoxes[j].height + 2 * expandingFactor);
+						Rect2d objectBoundingBox = trackedObjects[objectId]->getBoundingBox();
+						if (((expandedBoundingBox & objectBoundingBox).area() > 0)) {
+							//If going in same direction
+							Vec2d objectMotionVector = trackedObjects[objectId]->motionVector;//getMotionVector();
+							float angle = cvFastArctan(trackedObjects[objectId]->motionVector.val[1], trackedObjects[objectId]->motionVector.val[0]);
+							printf("x%f y%f %f angle \n", trackedObjects[objectId]->motionVector.val[0], trackedObjects[objectId]->motionVector.val[1], angle);
+							if (Utilities::isAngleBetween(angle, (i * 10 - 25), (i * 10 + 25))) {
+								trackedObjects[objectId]->updateTracker(frame,objectBoundingBoxes[j]);
+								foundExistingObject = true;
+								break;
+							}
+						}
+					}
+
+					if (!foundExistingObject && objectBoundingBoxes[j].area() > 30 && numObjects < maxObjects) {
+						trackedObjects[numObjects] = new TrackedObject(frame, objectBoundingBoxes[j], numObjects);
+						numObjects++;
+					}
+					
 					k++;
 				}
 				j++;
@@ -126,8 +154,8 @@ int TrackedObjects::find(Mat frame)
 	/// Display
 	imshow("calcHist Demo", histImage);
 	cvtColor(frame, prevFrame, CV_BGR2GRAY);
-	numObjects = objectsFound;
-	return objectsFound;
+	//numObjects = objectsFound;
+	return numObjects;
 	
 }
 

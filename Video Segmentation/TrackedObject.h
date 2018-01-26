@@ -17,6 +17,8 @@ public:
 	TrackedObject(Mat frame, Rect2d boundingBox,int id_);
 	~TrackedObject();
 
+	void updateTracker(Mat frame, Rect2d boundingBox_);
+
 	bool update(Mat frame);
 	void drawSegment(Mat frame,bool isOverlap,Mat outputFrame);
 	bool boundingBoxOverlap(TrackedObject object);
@@ -29,7 +31,8 @@ private:
 	int id;
 	int positionIndex;
 	int numFramesForLastMaskRefinement;
-	Rect2d boundingBox;
+	Rect2d objectBoundingBox;
+	Rect2d trackerBoundingBox;
 	Point position;
 	Point previousPosition[5];
 	Mat object;

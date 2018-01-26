@@ -265,4 +265,15 @@ Mat Utilities::get_object_contours(Mat frame,Mat prevFrame, int maxBoundingBoxes
 	return objects;
 }
 
+bool Utilities::isAngleBetween(double angle, double bound1, double bound2) {
+	//n = (360 + (n % 360)) % 360;
+	angle = fmod(360 + fmod(angle, 360), 360);
+	//a = (3600000 + a) % 360;
+	bound1 = fmod(3600000 + bound1, 360);
+	//b = (3600000 + b) % 360;
+	bound2 = fmod(3600000 + bound2, 360);
 
+	if (bound1 < bound2)
+		return bound1 <= angle && angle <= bound2;
+	return bound1 <= angle || angle <= bound2;
+}
