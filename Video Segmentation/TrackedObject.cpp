@@ -66,25 +66,40 @@ void TrackedObject::updateTracker(Mat frame, Rect2d boundingBox_) {
 
 	object = Mat(frame.size(), CV_8UC3);
 	mask = Mat(frame.size(), CV_8U, Scalar(0));
-	Rect2d newBoundingBoxes[1];
+	Rect2d newBoundingBoxes[10];//TODO: FIX
 	Rect2d wholeFrame(0, 0, frame.size().width, frame.size().height);
 	int expandingFactor = 5;
 	Rect2d boundingToFindObject = Rect2d(objectBoundingBox.x - expandingFactor, objectBoundingBox.y - expandingFactor,
 		objectBoundingBox.width + expandingFactor * 2, objectBoundingBox.height + expandingFactor * 2) & wholeFrame;//Cliped to frame size
 
-	Mat potentalObject(boundingToFindObject.height + 10, boundingToFindObject.width + 10, frame.type());
+	Mat potentalObject(boundingToFindObject.height + expandingFactor*2, boundingToFindObject.width + expandingFactor*2, frame.type());
 	potentalObject.setTo(0);
 	frame(boundingToFindObject).copyTo(potentalObject(Rect2d(5, 5, boundingToFindObject.width, boundingToFindObject.height)));
 	//destroyWindow("P" + SSTR(id));
 	imshow("P" + SSTR(id), potentalObject);
 
 	//find_contour(frame(boundingToFindObject), newBoundingBoxes, 1);
-	/*Utilities::find_boundingBoxes(potentalObject, newBoundingBoxes, 1);
+	int number = Utilities::find_boundingBoxes(potentalObject, newBoundingBoxes, 1);
 
-	boundingBox.x = newBoundingBoxes[0].x + boundingBox.x - expandingFactor;
-	boundingBox.y = newBoundingBoxes[0].y + boundingBox.y - expandingFactor;
-	boundingBox.width = newBoundingBoxes[0].width;
-	boundingBox.height = newBoundingBoxes[0].height;*/
+	Rect2d bestBoundingBox;
+	Rect2d currentBoundingBox;
+	double bestAreaOverlap = 0.0,newAreaOverlap;
+	for (int i = 0; i < number; i++) {
+		currentBoundingBox.x = newBoundingBoxes[i].x + objectBoundingBox.x - expandingFactor * 2;
+		currentBoundingBox.y = newBoundingBoxes[i].y + objectBoundingBox.y - expandingFactor * 2;
+		currentBoundingBox.width = newBoundingBoxes[i].width;
+		currentBoundingBox.height = newBoundingBoxes[i].height;
+		newAreaOverlap = (trackerBoundingBox & currentBoundingBox).area();
+		if (bestAreaOverlap < newAreaOverlap) {
+			bestAreaOverlap = newAreaOverlap;
+			objectBoundingBox = currentBoundingBox;
+		}
+	}
+
+	/*objectBoundingBox.x = bestBoundingBox.x + objectBoundingBox.x - expandingFactor*2;
+	objectBoundingBox.y = bestBoundingBox.y + objectBoundingBox.y - expandingFactor*2;
+	objectBoundingBox.width = bestBoundingBox.width;
+	objectBoundingBox.height = bestBoundingBox.height;*/
 
 	//boundingBox = boundingBox.area() < oldBoundingBox.area() ? boundingToFindObject & wholeFrame : boundingBox;
 
@@ -144,15 +159,15 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 		refineMask(frame, mask, objectBoundingBox);
 		frame.copyTo(object, mask);
 
-		if(position.x > 0 && position.y >0 && objectBoundingBox.width + position.x < object.cols && objectBoundingBox.height + position.y < object.rows)
-			Mat(object, Rect(position.x, position.y, objectBoundingBox.width, objectBoundingBox.height)).copyTo(savedObject);
+		
+		Mat(object, objectBoundingBox & Rect2d(0,0, frame.cols, frame.rows)).copyTo(savedObject);
 		
 
 		putText(object, "Motion : mx=" + SSTR(motionVector.val[0]) + " my=" + SSTR(motionVector.val[1]), Point(100, 50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 0), 2);
 
 		imshow("Tracked " + SSTR(int(id)), object);
 		//imshow("Mask " + SSTR(int(id)), mask);
-		//imshow("Saved " + SSTR(int(id)), savedObject);
+		imshow("Saved " + SSTR(int(id)), savedObject);
 
 		//Draw bounding box on frame
 		rectangle(outputFrame, objectBoundingBox, Scalar(255, 0, 0), 2, 1);

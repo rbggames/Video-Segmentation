@@ -54,6 +54,12 @@ void refineMask(Mat frame, Mat mask, Rect2d boundingBox) {
 	}
 }
 
+bool compareContourSize(vector<cv::Point> i, vector<cv::Point> j) { 
+	double areaI = boundingRect(i).area();
+	double areaJ = boundingRect(j).area();
+	return (areaI>areaJ);
+}
+
 Mat kNearestColours(Mat source, int k) {
 	Mat src;
 	cvtColor(source, src, CV_BGR2HSV);
@@ -145,25 +151,12 @@ int Utilities::find_boundingBoxes(Mat image, cv::Rect2d* boundingBoxes, int maxB
 
 
 	image.copyTo(out);
+	std::sort(contours.begin(), contours.end(), compareContourSize);
 	for (size_t i = 0; i< contours.size(); i++) // iterate through each contour.
 	{
 		// draw rectangle around the contour:
 		cv::Rect tempBoundingBox = boundingRect(contours[i]);
-		//if (i < maxBoundingBoxes)
 		boundingBoxes[i] = tempBoundingBox;
-		//cv::rectangle(out, tempBoundingBox, cv::Scalar(255, 0, 255)); // if you want read and "image" is color image, use cv::Scalar(0,0,255) instead
-
-																	  // you aren't using the largest contour at all? no need to compute it...
-																	  /*
-																	  double area = contourArea(contours[i]);  //  Find the area of contour
-
-																	  if (area > largest_area)
-																	  {
-																	  largest_area = area;
-																	  largest_contour_index = i;               //Store the index of largest contour
-																	  bounding_rect = boundingRect(contours[i]); // Find the bounding rectangle for biggest contour
-																	  }
-																	  */
 	}
 
 	return contours.size();

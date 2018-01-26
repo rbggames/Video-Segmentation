@@ -62,7 +62,7 @@ void BackgroundExtractor::update(Mat frame, TrackedObjects objects, int size)
 	threshold(forgroundMask, forgroundMask, 20, 255, THRESH_BINARY);
 	
 	//Expand mask
-	Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(7, 7));
+	Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(1, 1));
 	dilate(forgroundMask, forgroundMask, structuringElement);
 
 	frame.copyTo(forground, forgroundMask);
