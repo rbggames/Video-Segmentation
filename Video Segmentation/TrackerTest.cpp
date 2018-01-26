@@ -46,9 +46,9 @@ int main(int argc, char **argv)
 	for (int i = 0; i < 10; i++) {
 		video.getFrame(frame);
 		if (num % 5 == 0) {
-			numObjects = trackedObjects.find(frame);
+			//numObjects = trackedObjects.find(frame);
 		}
-		trackedObjects.update(frame, outputFrame);
+		//trackedObjects.update(frame, outputFrame);
 		num++;
 	}
 	background.update(frame);
@@ -72,16 +72,16 @@ int main(int argc, char **argv)
 		double timer = (double)getTickCount();
 		Mat forground = background.getForground();
 		if (num % 1 == 0) {
-			numObjects = trackedObjects.find(frame);
+			numObjects = trackedObjects.find(forground);
 		}
 		num++;
 		frame.copyTo(outputFrame);
 
 		//TODO: Could be got from elsewhere
-		Mat cannyFrame;
-		Canny(frame, cannyFrame, 30, 200);
+		//Mat cannyFrame;
+		//Canny(frame, cannyFrame, 30, 200);
 
-		trackedObjects.update(frame, outputFrame);
+		trackedObjects.update(forground, outputFrame);
 		background.update(frame,trackedObjects,numObjects);
 		//background.update(frame);
 

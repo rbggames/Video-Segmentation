@@ -100,14 +100,14 @@ int TrackedObjects::find(Mat frame)
 			Mat maskV;
 			inRange(hsv[0], (i *10-5), (i*10+15) , mask);
 			inRange(hsv[2], 0, 30, maskV);
-			imshow("S", maskV);
+			//imshow("S", maskV);
 			Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(3, 3));
 			dilate(mask, mask, structuringElement);
 			mask |= maskV;
-			imshow("Q"+SSTR(i), mask);
+			//imshow("Q"+SSTR(i), mask);
 			Mat masked;
 			frame.copyTo(masked, mask);
-			imshow("Masked"+SSTR(i*10), masked);
+			//imshow("Masked"+SSTR(i*10), masked);
 			int potentialObjectsFound = find_contour(masked, objectBoundingBoxes, maxObjects * 1000);
 			//find(frame, objectBoundingBoxes, potentialObjectsFound, objectsFound);
 			//objectsFound += potentialObjectsFound;

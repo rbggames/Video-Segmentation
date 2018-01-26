@@ -35,7 +35,7 @@ bool VideoSource::getFrame(Mat frame)
 	Mat backgroundImg;
 	backgroundImg = imread("Images\\background.jpg");
 	backgroundImg(Rect2d(0,0, frame.cols, frame.rows)).copyTo(frame);
-	frame.setTo(Scalar(0, 0, 0));
+	//frame.setTo(Scalar(0, 0, 0));
 	for (int i = 0; i < numShapes; i++)
 		shapes[i]->updateDraw(frame);
 	return true;
