@@ -17,29 +17,15 @@ TrackedObjects::~TrackedObjects()
 }
 
 TrackedObject* TrackedObjects::getTrackedObject(int i) {
-	return trackedObjects[i];
+	if (i < trackedObjectList.size())
+		return &trackedObjectList.at(i);
+	else
+		return NULL;
 }
 
-int TrackedObjects::find(Mat frame, Rect2d* objectBoundingBoxes,int objectsFound,int indexStart) {
-	//int objectsFound = find_contour(frame, objectBoundingBoxes, maxObjects * 1000);
-	// Display bounding box.
-	/*int i = 0, j = 0;
-	while (i+indexStart < maxObjects && j+indexStart < objectsFound) {
-		if (objectBoundingBoxes[j].area() > 12) {
-			//rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
-			trackedObjects[i+indexStart] = new TrackedObject(frame, objectBoundingBoxes[j], i);
-			i++;
-		}
-		j++;
-	}
-	numObjects = i;*/
-	return numObjects;
-}
-
+int id = 0;
 int TrackedObjects::find(Mat frame)
 {
-	if(!trackedObjects)
-		trackedObjects = (TrackedObject**)malloc(maxObjects * sizeof(TrackedObject*));
 	int objectsFound = 0;
 	UMat flow;
 	Mat nextGrey, flowPolar, out(frame.rows, frame.cols, CV_8UC3);
@@ -112,35 +98,36 @@ int TrackedObjects::find(Mat frame)
 			//find(frame, objectBoundingBoxes, potentialObjectsFound, objectsFound);
 			//objectsFound += potentialObjectsFound;
 			int k = 0, j = 0;
-			while (k + objectsFound < maxObjects && j < potentialObjectsFound) {
-				if (objectBoundingBoxes[j].area() > 12) {
+			while (trackedObjectList.size() < maxObjects && j < potentialObjectsFound) {
+				if (objectBoundingBoxes[j].area() > 40) {
 					//rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
 					//trackedObjects[k + objectsFound] = new TrackedObject(frame, objectBoundingBoxes[j], k+objectsFound);
 					
 					bool foundExistingObject = false;
-					for (int objectId = 0; objectId < numObjects; objectId++) {
+					for (int objectId = 0; objectId < trackedObjectList.size(); objectId++) {
 						//If overlap
 						//Expand to group separate bits
-						int expandingFactor = 50;
+						int expandingFactor = 5;
 						Rect2d expandedBoundingBox(objectBoundingBoxes[j].tl().x - expandingFactor, objectBoundingBoxes[j].tl().y - expandingFactor,
 							objectBoundingBoxes[j].width + 2 * expandingFactor, objectBoundingBoxes[j].height + 2 * expandingFactor);
-						Rect2d objectBoundingBox = trackedObjects[objectId]->getBoundingBox();
+						Rect2d objectBoundingBox = trackedObjectList.at(objectId).getBoundingBox();
 						if (((expandedBoundingBox & objectBoundingBox).area() > 0)) {
 							//If going in same direction
-							Vec2d objectMotionVector = trackedObjects[objectId]->motionVector;//getMotionVector();
-							float angle = cvFastArctan(trackedObjects[objectId]->motionVector.val[1], trackedObjects[objectId]->motionVector.val[0]);
-							printf("x%f y%f %f angle \n", trackedObjects[objectId]->motionVector.val[0], trackedObjects[objectId]->motionVector.val[1], angle);
-							if (Utilities::isAngleBetween(angle, (i * 10 - 25), (i * 10 + 25))) {
-								trackedObjects[objectId]->updateTracker(frame,objectBoundingBoxes[j]);
+							Vec2d objectMotionVector = trackedObjectList.at(objectId).motionVector;//getMotionVector();
+							float angle = cvFastArctan(trackedObjectList.at(objectId).motionVector.val[1], trackedObjectList.at(objectId).motionVector.val[0]);
+							//printf("x%f y%f %f angle \n", trackedObjectList.at(objectId).motionVector.val[0], trackedObjectList.at(objectId).motionVector.val[1], angle);
+							if (Utilities::isAngleBetween(angle, (i * 10 - 15), (i * 10 + 15))) {
+								//trackedObjects[objectId]->updateTracker(frame,objectBoundingBoxes[j]);
+								trackedObjectList.at(objectId).updateTracker(frame, objectBoundingBoxes[j]);
 								foundExistingObject = true;
 								break;
 							}
 						}
 					}
 
-					if (!foundExistingObject && objectBoundingBoxes[j].area() > 30 && numObjects < maxObjects) {
-						trackedObjects[numObjects] = new TrackedObject(frame, objectBoundingBoxes[j], numObjects);
-						numObjects++;
+					if (!foundExistingObject && objectBoundingBoxes[j].area() > 30 && trackedObjectList.size() < maxObjects) {
+						TrackedObject* newObject = new TrackedObject(frame, objectBoundingBoxes[j], id++);
+						trackedObjectList.push_back(*newObject);
 					}
 					
 					k++;
@@ -154,9 +141,31 @@ int TrackedObjects::find(Mat frame)
 	/// Display
 	imshow("calcHist Demo", histImage);
 	cvtColor(frame, prevFrame, CV_BGR2GRAY);
-	//numObjects = objectsFound;
-	return numObjects;
+	return trackedObjectList.size();
 	
+}
+
+int TrackedObjects::consolidateObjects()
+{
+	int i = 0;
+	while (i < trackedObjectList.size()) {
+		Vec2d motionVector = trackedObjectList.at(i).getMotionVector();
+		double magnituedSquared = motionVector.val[0] * motionVector.val[0] + motionVector.val[1] * motionVector.val[1];
+		Rect2d newBoundingBoxes[1000];//TODO: fix
+		Mat object = trackedObjectList.at(i).getObjectMat();
+		int number = 0;
+		if(object.size().area() > 0)
+			number = Utilities::find_boundingBoxes(object, newBoundingBoxes, 1);
+		if (magnituedSquared < 0.01 || number == 0  || 
+			(number > 0 && (newBoundingBoxes[0]& trackedObjectList.at(i).getTrackerBoundingBox()).area()< 25)) {
+			trackedObjectList.erase(trackedObjectList.begin() + i);
+		}
+		else {
+			i++;
+		}
+	}
+
+	return trackedObjectList.size();
 }
 
 int TrackedObjects::find_contour(Mat image, cv::Rect2d* boundingBoxes, int maxBoundingBoxes)
@@ -234,62 +243,40 @@ int TrackedObjects::find_contour(Mat image, cv::Rect2d* boundingBoxes, int maxBo
 }
 
 
-int TrackedObjects::findObjects(Mat frame, TrackedObject** trackedObjects, int numObjects, TrackedObject** newTrackedObjects) {//TODO: think about freeing newTrackedObjects
-	cv::Rect2d objectBoundingBoxes[1000];//TODO: CHANGE
-	int objectsFound = find_contour(frame, objectBoundingBoxes, maxObjects * 1000);
-
-	trackedObjects = (TrackedObject**)malloc(maxObjects * sizeof(TrackedObject*));
-	// Display bounding box.
-	int i = 0, j = 0, k = 0;
-	while (i < maxObjects && j < objectsFound) {
-		if (objectBoundingBoxes[j].area() > 12) {
-			//rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
-
-			double bestMatchValue = -1;
-			int bestMatchIndex = -1;
-
-			for (int j = 0; j < numObjects; j++) {
-				double similarity = Evaluator::evaluateSegmentsSimalarity(frame, trackedObjects[j]->getObjectMat(), objectBoundingBoxes[j]);
-				if (bestMatchValue < similarity) {
-					bestMatchIndex = j;
-					bestMatchValue = similarity;
-				}
-			}
-
-			if (bestMatchValue > ACCEPTANCE_PROBABILITY) {//TODO: Want to check is not already added
-				newTrackedObjects[k] = trackedObjects[bestMatchIndex];
-				k++;
-			}
-			else {
-				trackedObjects[k] = new TrackedObject(frame, objectBoundingBoxes[j], i);
-				k++;
-			}
-
-
-			i++;
-		}
-		j++;
-	}
-}
-
-
 void TrackedObjects::update(Mat frame, Mat outputFrame) {
-	for (int i = 0; i < numObjects; i++) {
-		bool ok = trackedObjects[i]->update(frame);
+	for (int i = 0; i < trackedObjectList.size(); i++) {
+		bool ok = trackedObjectList.at(i).update(frame);
 		if (!ok)
 		{
 			// Tracking failure detected.
 			putText(frame, "Tracking failure detected", Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 255), 2);
 		}
 	}
-	for (int i = 0; i < numObjects; i++) {
+	int i = 0, j = 0;
+	double motionAngleI, motionAngleJ;
+	while ( i < trackedObjectList.size()) {
 		bool isOverlap = false;
-		for (int j = 0; j < numObjects; j++) {
+		while (j < trackedObjectList.size()) {
 			if (i != j) {
-				isOverlap = trackedObjects[i]->boundingBoxOverlap(*trackedObjects[j]);
+				isOverlap = trackedObjectList.at(i).boundingBoxOverlap(trackedObjectList.at(j));
+
+				//If objects are overlapping and moving in the same direction then they are likely the same, hence delete one
+				motionAngleI = cvFastArctan(trackedObjectList.at(i).motionVector.val[1], trackedObjectList.at(i).motionVector.val[0]);
+				motionAngleJ = cvFastArctan(trackedObjectList.at(j).motionVector.val[1], trackedObjectList.at(j).motionVector.val[0]);
+				if (Utilities::isAngleBetween(motionAngleJ, motionAngleI-5, motionAngleI+5)) {
+					trackedObjectList.erase(trackedObjectList.begin() + j);
+				}else {
+					j++;
+				}
 				break;
 			}
+			j++;
 		}
-		trackedObjects[i]->drawSegment(frame, isOverlap, outputFrame);
+		trackedObjectList.at(i).drawSegment(frame, isOverlap, outputFrame);
+		i++;
 	}
+}
+
+int TrackedObjects::getNumTrackedObjects() {
+	return trackedObjectList.size();
 }

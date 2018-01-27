@@ -12,8 +12,9 @@ Evaluator::~Evaluator()
 {
 }
 
-void Evaluator::evaluateSegments(Shape** actualShapes, int numShapes, TrackedObjects trackedShapes, int numTrackedShapes)
+void Evaluator::evaluateSegments(Shape** actualShapes, int numShapes, TrackedObjects trackedShapes)
 {
+	int numTrackedShapes = trackedShapes.getNumTrackedObjects();
 	for (int i = 0; i < numShapes; i++) {
 		int bestMatchIndex=-1;
 		double bestMatchValue=-1;

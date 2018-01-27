@@ -20,7 +20,7 @@ using namespace std;
 const int maxObjects = 10;
 #define ACCEPTANCE_PROBABILITY 0.9
 RNG rng(12345);
-
+int currentObjectId = 0;
 
 int main(int argc, char **argv)
 {
@@ -74,6 +74,9 @@ int main(int argc, char **argv)
 		if (num % 1 == 0) {
 			numObjects = trackedObjects.find(forground);
 		}
+		if (num % 10 == 0) {
+			numObjects = trackedObjects.consolidateObjects();
+		}
 		num++;
 		frame.copyTo(outputFrame);
 
@@ -105,12 +108,38 @@ int main(int argc, char **argv)
 			k = 0;
 			while (k != 'p') {
 				k = waitKey(5);
+				//Cycle Through Tracked Objects
+				if (k == 'n') {
+					currentObjectId = (currentObjectId + 1) % numObjects;
+				}
+				TrackedObject* curObject = trackedObjects.getTrackedObject(currentObjectId);
+				if (curObject) {
+					Mat obj;
+					curObject->getObjectMat().copyTo(obj);
+					rectangle(obj, curObject->getTrackerBoundingBox(), Scalar(0, 0, 0));
+					rectangle(obj, curObject->getBoundingBox(), Scalar(255, 0, 0));
+					putText(obj, "Tracked (" + SSTR(currentObjectId) + ") :" + SSTR(curObject->getId()), Point(10, 20), FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(200, 200, 250), 1, CV_AA);
+					imshow("Object", obj);
+				}
 			}
+		}
+		//Cycle Through Tracked Objects
+		if (k == 'n') {
+			currentObjectId = (currentObjectId + 1) % numObjects;
+		}
+		TrackedObject* curObject = trackedObjects.getTrackedObject(currentObjectId);
+		if (curObject) {
+			Mat obj;
+			curObject->getObjectMat().copyTo(obj);
+			rectangle(obj, curObject->getTrackerBoundingBox(), Scalar(0, 0, 0));
+			rectangle(obj, curObject->getBoundingBox(), Scalar(255, 0, 0));
+			putText(obj, "Tracked ("+ SSTR(currentObjectId) +") :"+ SSTR(curObject->getId()), Point(10, 20), FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(200, 200, 250), 1, CV_AA);
+			imshow("Object", obj);
 		}
 
 		//Evaluation
 		int numShapes;
 		Shape** shapes = video.getShapes(&numShapes);
-		//Evaluator::evaluateSegments(shapes, numShapes, trackedObjects, numObjects);
+		Evaluator::evaluateSegments(shapes, numShapes, trackedObjects);
 	}
 }

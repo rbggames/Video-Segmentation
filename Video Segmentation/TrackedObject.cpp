@@ -49,6 +49,11 @@ TrackedObject::TrackedObject(Mat frame, Rect2d boundingBox_,int id_)
 
 	if (position.x > 0 && position.y >0 && objectBoundingBox.width + position.x < object.cols && objectBoundingBox.height + position.y < object.rows)
 		Mat(object, Rect(position.x, position.y, objectBoundingBox.width, objectBoundingBox.height)).copyTo(savedObject);
+
+	for (int i = 0; i < MAX_POSITIONS_TO_REMEMBER; i++) {
+		previousPosition[i].x = trackerBoundingBox.x;
+		previousPosition[i].y = trackerBoundingBox.y;
+	}
 }
 
 
@@ -76,7 +81,7 @@ void TrackedObject::updateTracker(Mat frame, Rect2d boundingBox_) {
 	potentalObject.setTo(0);
 	frame(boundingToFindObject).copyTo(potentalObject(Rect2d(5, 5, boundingToFindObject.width, boundingToFindObject.height)));
 	//destroyWindow("P" + SSTR(id));
-	imshow("P" + SSTR(id), potentalObject);
+	//imshow("P" + SSTR(id), potentalObject);
 
 	//find_contour(frame(boundingToFindObject), newBoundingBoxes, 1);
 	int number = Utilities::find_boundingBoxes(potentalObject, newBoundingBoxes, 1);
@@ -108,10 +113,10 @@ void TrackedObject::updateTracker(Mat frame, Rect2d boundingBox_) {
 	yOffset = oldBoundingBox.tl().y - position.y;
 
 	//Update previous positions
-	for (int i = 0; i < MAX_POSITIONS_TO_REMEMBER; i++) {
+	/*for (int i = 0; i < MAX_POSITIONS_TO_REMEMBER; i++) {
 		previousPosition[i].x -= xOffset;
 		previousPosition[i].y -= yOffset;
-	}
+	}*/
 
 	//tracker->clear();
 	//tracker->init(frame, boundingBox);
@@ -129,24 +134,43 @@ void TrackedObject::updateTracker(Mat frame, Rect2d boundingBox_) {
 
 	rectangle(temp, newBoundingBoxes[0], Scalar(255, 255, 255));
 
-	imshow(SSTR(id), temp);
+	//imshow(SSTR(id), temp);
 }
 
 bool TrackedObject::update(Mat frame)
 {
 	//Update tracker
-	bool ok = tracker->update(frame, trackerBoundingBox);
+	bool ok = false;
+	if (tracker)
+		ok = tracker->update(frame, trackerBoundingBox);
 	double alpha = 0.1;
 
 	if (ok) {
 		// Update Positions and motion vector (rolling average)
-		previousPosition[positionIndex] = position;
 		position = trackerBoundingBox.tl();
-		motionVector.val[0] = alpha*(position.x - previousPosition[positionIndex].x) + (1 - alpha)*motionVector.val[0];
-		motionVector.val[1] = alpha*(position.y - previousPosition[positionIndex].y) + (1 - alpha)*motionVector.val[1];
+		if (motionVector.val[0] != 0) {
+			motionVector.val[0] = alpha*(position.x - previousPosition[positionIndex].x) + (1 - alpha)*motionVector.val[0];
+		}
+		else {
+			//Initialise
+			motionVector.val[0] = (position.x - previousPosition[positionIndex].x);
+		}
+		if (motionVector.val[1] != 0) {
+			motionVector.val[1] = alpha*(position.y - previousPosition[positionIndex].y) + (1 - alpha)*motionVector.val[1];
+		}
+		else {
+			//Initialise
+			motionVector.val[1] = (position.y - previousPosition[positionIndex].y);
+		}
 
 		positionIndex = (++positionIndex) % MAX_POSITIONS_TO_REMEMBER;
+		previousPosition[positionIndex].x = position.x;
+		previousPosition[positionIndex].y = position.y;
 	}
+
+	//Update objectBoundingBoxPosition
+	objectBoundingBox.x += motionVector.val[0];
+	objectBoundingBox.y += motionVector.val[1];
 	return ok;
 }
 
@@ -154,7 +178,7 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 {
 	//Clear Object
 	object.setTo(Scalar(180, 180, 180));
-	if (!isOverlap || true) {//TODO:CHANGE
+	if (!isOverlap) {//TODO:CHANGE
 		//Display Tracked object
 		refineMask(frame, mask, objectBoundingBox);
 		frame.copyTo(object, mask);
@@ -165,9 +189,9 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 
 		putText(object, "Motion : mx=" + SSTR(motionVector.val[0]) + " my=" + SSTR(motionVector.val[1]), Point(100, 50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 0), 2);
 
-		imshow("Tracked " + SSTR(int(id)), object);
+		//imshow("Tracked " + SSTR(int(id)), object);
 		//imshow("Mask " + SSTR(int(id)), mask);
-		imshow("Saved " + SSTR(int(id)), savedObject);
+		//imshow("Saved " + SSTR(int(id)), savedObject);
 
 		//Draw bounding box on frame
 		rectangle(outputFrame, objectBoundingBox, Scalar(255, 0, 0), 2, 1);
@@ -193,16 +217,16 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 
 		//move mask
 		Point2f src2[3] = { Point2f(0, 0), Point2f(0,100),Point2f(100,0) };
-		Point2f dst2[3] = { Point2f(motionVector[0], motionVector[1]),
-			Point2f(motionVector[0], motionVector[1]+100),
-			Point2f(motionVector[0]+100, motionVector[1]), };
+		Point2f dst2[3] = { Point2f(motionVector.val[0], motionVector.val[1]),
+			Point2f(motionVector.val[0], motionVector.val[1]+100),
+			Point2f(motionVector.val[0]+100, motionVector.val[1]), };
 		translationMat = getAffineTransform(src2, dst2);
 		warpAffine(mask, mask, translationMat, object.size(), 1);
 
 		putText(object, "Motion : mx=" + SSTR(motionVector.val[0]) + " my=" + SSTR(motionVector.val[1]), Point(100, 50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 0), 2);
 		putText(object, "Predicting", Point(100, 150), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 0), 2);
 
-		imshow("Tracked " + SSTR(int(id)), object);
+		//imshow("Tracked " + SSTR(int(id)), object);
 	}
 }
 
@@ -266,6 +290,11 @@ Mat TrackedObject::getObjectMat()
 	return object;
 }
 
+Rect2d TrackedObject::getTrackerBoundingBox()
+{
+	return trackerBoundingBox;
+}
+
 Rect2d TrackedObject::getBoundingBox()
 {
 	return objectBoundingBox;
@@ -274,4 +303,9 @@ Rect2d TrackedObject::getBoundingBox()
 Vec2d TrackedObject::getMotionVector()
 {
 	return motionVector;
+}
+
+int TrackedObject::getId()
+{
+	return id;
 }

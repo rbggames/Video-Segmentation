@@ -23,8 +23,11 @@ public:
 	void drawSegment(Mat frame,bool isOverlap,Mat outputFrame);
 	bool boundingBoxOverlap(TrackedObject object);
 	Mat getObjectMat();
+	Rect2d getTrackerBoundingBox();
 	Rect2d getBoundingBox();
 	Vec2d getMotionVector();
+	int getId();
+
 
 	Vec2d motionVector;//TODO Change to private
 private:
