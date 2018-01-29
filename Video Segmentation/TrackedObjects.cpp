@@ -49,8 +49,8 @@ int TrackedObjects::find(Mat frame)
 	merge(hsv, 3, out);
 	
 
-	cvtColor(out, out, CV_HSV2BGR);
-	out = Utilities::kNearestColours(out, 5);
+	//cvtColor(out, out, CV_HSV2BGR);
+	//out = Utilities::kNearestColours(out, 5);
 	imshow("Flow", out);
 
 	//cvtColor(out, out, CV_BGR2HSV);
@@ -118,7 +118,6 @@ int TrackedObjects::find(Mat frame)
 						Rect2d objectBoundingBox = trackedObjectList.at(objectId).getBoundingBox();
 						if (((expandedBoundingBox & objectBoundingBox).area() > 0)) {
 							//If going in same direction
-							Vec2d objectMotionVector = trackedObjectList.at(objectId).motionVector;//getMotionVector();
 							float angle = trackedObjectList.at(objectId).getMotionAngle();
 
 							//printf("x%f y%f %f angle \n", trackedObjectList.at(objectId).motionVector.val[0], trackedObjectList.at(objectId).motionVector.val[1], angle);

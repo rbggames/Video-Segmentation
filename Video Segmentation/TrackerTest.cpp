@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 		// Start timer
 		double timer = (double)getTickCount();
 		Mat forground = background.getForground();
-		if (num % 1 == 0) {
+		if (num % 10 == 0) {
 			numObjects = trackedObjects.find(forground);
 		}
 		frame.copyTo(outputFrame);
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 		trackedObjects.update(forground, outputFrame);
 		background.update(frame,trackedObjects,numObjects);
 
-		if (num % 10 == 0) {
+		if (num % 30 == 0) {
 			numObjects = trackedObjects.consolidateObjects();
 		}
 		num++;

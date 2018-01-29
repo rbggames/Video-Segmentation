@@ -162,32 +162,34 @@ bool TrackedObject::update(Mat frame)
 
 	if (ok) {
 		// Update Positions and motion vector (rolling average)
-		position = objectBoundingBox.tl();
+		Point trackerPosition = trackerBoundingBox.tl();
 		if (!trackingReset  && motionVector.val[0] != 0) {
-			motionVector.val[0] = alpha*(position.x - previousPosition[positionIndex].x) + (1 - alpha)*motionVector.val[0];
+			motionVector.val[0] = alpha*(trackerPosition.x - previousPosition[positionIndex].x) + (1 - alpha)*motionVector.val[0];
 		}
 		else {
 			//Initialise
 			if(motionVector.val[0] == 0)
-				motionVector.val[0] = (position.x - previousPosition[positionIndex].x);
+				motionVector.val[0] = (trackerPosition.x - previousPosition[positionIndex].x);
 		}
 
 		if (!trackingReset && motionVector.val[0] != 0) {
-			motionVector.val[1] = alpha*(position.y - previousPosition[positionIndex].y) + (1 - alpha)*motionVector.val[1];
+			motionVector.val[1] = alpha*(trackerPosition.y - previousPosition[positionIndex].y) + (1 - alpha)*motionVector.val[1];
 		}
 		else {
 			//Initialise
-			motionVector.val[1] = (position.y - previousPosition[positionIndex].y);
+			motionVector.val[1] = (trackerPosition.y - previousPosition[positionIndex].y);
 			trackingReset = false;
 		}
 
-		positionIndex = (++positionIndex) % MAX_POSITIONS_TO_REMEMBER;;
-		previousPosition[positionIndex].x = position.x;
-		previousPosition[positionIndex].y = position.y;
-		
 		//Update objectBoundingBoxPosition
-		objectBoundingBox.x += position.x - previousPosition[positionIndex].x;
-		objectBoundingBox.y += position.y - previousPosition[positionIndex].y;
+		objectBoundingBox.x += trackerPosition.x - previousPosition[positionIndex].x;
+		objectBoundingBox.y += trackerPosition.y - previousPosition[positionIndex].y;
+		position = objectBoundingBox.tl();
+
+		positionIndex = (++positionIndex) % MAX_POSITIONS_TO_REMEMBER;;
+		previousPosition[positionIndex].x = trackerPosition.x;
+		previousPosition[positionIndex].y = trackerPosition.y;
+		
 
 		/*if (positionIndex == 0) {
 			tracker->clear();
