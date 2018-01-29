@@ -3,14 +3,28 @@
 #include "Utilities.h"
 
 
-TrackedObject::TrackedObject(Mat frame, Rect2d boundingBox_,int id_)
+TrackedObject::TrackedObject(Mat frame, Rect2d boundingBox_,double angle, int id_)
 {
+	markedToRemove = false;
+	trackingReset = true;
 	objectBoundingBox = Rect2d(boundingBox_);
 	trackerBoundingBox = Rect2d(objectBoundingBox);
 	position = objectBoundingBox.tl();
 	positionIndex = 0;
 	numFramesForLastMaskRefinement = 0;
 	id = id_;
+
+	//imshow(SSTR(id_), frame(boundingBox_));
+
+	
+	motionAngle = angle;
+
+
+
+
+
+
+
 
 	// List of tracker types in OpenCV 3.2
 	// NOTE : GOTURN implementation is buggy and does not work.
@@ -100,6 +114,7 @@ void TrackedObject::updateTracker(Mat frame, Rect2d boundingBox_) {
 			objectBoundingBox = currentBoundingBox;
 		}
 	}
+	objectBoundingBox = objectBoundingBox | trackerBoundingBox;
 
 	/*objectBoundingBox.x = bestBoundingBox.x + objectBoundingBox.x - expandingFactor*2;
 	objectBoundingBox.y = bestBoundingBox.y + objectBoundingBox.y - expandingFactor*2;
@@ -147,30 +162,49 @@ bool TrackedObject::update(Mat frame)
 
 	if (ok) {
 		// Update Positions and motion vector (rolling average)
-		position = trackerBoundingBox.tl();
-		if (motionVector.val[0] != 0) {
+		position = objectBoundingBox.tl();
+		if (!trackingReset  && motionVector.val[0] != 0) {
 			motionVector.val[0] = alpha*(position.x - previousPosition[positionIndex].x) + (1 - alpha)*motionVector.val[0];
 		}
 		else {
 			//Initialise
-			motionVector.val[0] = (position.x - previousPosition[positionIndex].x);
+			if(motionVector.val[0] == 0)
+				motionVector.val[0] = (position.x - previousPosition[positionIndex].x);
 		}
-		if (motionVector.val[1] != 0) {
+
+		if (!trackingReset && motionVector.val[0] != 0) {
 			motionVector.val[1] = alpha*(position.y - previousPosition[positionIndex].y) + (1 - alpha)*motionVector.val[1];
 		}
 		else {
 			//Initialise
 			motionVector.val[1] = (position.y - previousPosition[positionIndex].y);
+			trackingReset = false;
 		}
 
-		positionIndex = (++positionIndex) % MAX_POSITIONS_TO_REMEMBER;
+		positionIndex = (++positionIndex) % MAX_POSITIONS_TO_REMEMBER;;
 		previousPosition[positionIndex].x = position.x;
 		previousPosition[positionIndex].y = position.y;
+		
+		//Update objectBoundingBoxPosition
+		objectBoundingBox.x += position.x - previousPosition[positionIndex].x;
+		objectBoundingBox.y += position.y - previousPosition[positionIndex].y;
+
+		/*if (positionIndex == 0) {
+			tracker->clear();
+			if (objectBoundingBox.area() > 25) {
+				tracker->init(frame, objectBoundingBox);
+				previousPosition[positionIndex].x = objectBoundingBox.x;
+				previousPosition[positionIndex].y = objectBoundingBox.y;
+			}
+			trackingReset = true;
+		}*/
+		
+		if (motionVector.val[0] * motionVector.val[0] + motionVector.val[0] * motionVector.val[0] > 0.01) {
+			markedToRemove = false;
+		}
 	}
 
-	//Update objectBoundingBoxPosition
-	objectBoundingBox.x += motionVector.val[0];
-	objectBoundingBox.y += motionVector.val[1];
+	
 	return ok;
 }
 
@@ -198,6 +232,11 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 	}
 	else {
 		//Object Lost or obscured try to predict
+		//0) Check we have a savedObject
+		if (savedObject.size().area() < 25) {
+			return;
+		}
+
 		//1) Predict new position
 		position.x += motionVector.val[0];
 		position.y += motionVector.val[1];
@@ -303,6 +342,14 @@ Rect2d TrackedObject::getBoundingBox()
 Vec2d TrackedObject::getMotionVector()
 {
 	return motionVector;
+}
+
+double TrackedObject::getMotionAngle()
+{
+	if (motionVector.val[0]* motionVector.val[0] + motionVector.val[1] * motionVector.val[1] > 0.01) {
+		motionAngle = cvFastArctan(motionVector.val[1],motionVector.val[0]);
+	}
+	return motionAngle;
 }
 
 int TrackedObject::getId()

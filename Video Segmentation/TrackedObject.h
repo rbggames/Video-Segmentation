@@ -14,7 +14,7 @@ class TrackedObject
 public:
 	Mat mask;
 
-	TrackedObject(Mat frame, Rect2d boundingBox,int id_);
+	TrackedObject(Mat frame, Rect2d boundingBox,double angle, int id_);
 	~TrackedObject();
 
 	void updateTracker(Mat frame, Rect2d boundingBox_);
@@ -26,9 +26,10 @@ public:
 	Rect2d getTrackerBoundingBox();
 	Rect2d getBoundingBox();
 	Vec2d getMotionVector();
+	double getMotionAngle();
 	int getId();
 
-
+	bool markedToRemove;
 	Vec2d motionVector;//TODO Change to private
 private:
 	int id;
@@ -41,6 +42,8 @@ private:
 	Mat object;
 	Mat savedObject;
 	Ptr<Tracker> tracker;
+	bool trackingReset;
+	double motionAngle;
 
 	void refineMask(Mat image, Mat mask, Rect2d boundingBox);
 };

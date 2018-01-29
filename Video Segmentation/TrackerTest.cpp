@@ -43,15 +43,14 @@ int main(int argc, char **argv)
 	TrackedObjects trackedObjects(frame);
 
 	BackgroundExtractor background(frame, 10);
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 20; i++) {
 		video.getFrame(frame);
-		if (num % 5 == 0) {
-			//numObjects = trackedObjects.find(frame);
-		}
-		//trackedObjects.update(frame, outputFrame);
-		num++;
+		background.update(frame);
 	}
-	background.update(frame);
+	for (int i = 0; i < 25; i++) {
+		video.getFrame(frame);
+		background.update(frame, trackedObjects, 0);
+	}
 
 	imshow("Tracking", frame);
 
@@ -74,10 +73,6 @@ int main(int argc, char **argv)
 		if (num % 1 == 0) {
 			numObjects = trackedObjects.find(forground);
 		}
-		if (num % 10 == 0) {
-			numObjects = trackedObjects.consolidateObjects();
-		}
-		num++;
 		frame.copyTo(outputFrame);
 
 		//TODO: Could be got from elsewhere
@@ -86,6 +81,11 @@ int main(int argc, char **argv)
 
 		trackedObjects.update(forground, outputFrame);
 		background.update(frame,trackedObjects,numObjects);
+
+		if (num % 10 == 0) {
+			numObjects = trackedObjects.consolidateObjects();
+		}
+		num++;
 		//background.update(frame);
 
 		// Calculate Frames per second (FPS)
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 				k = waitKey(5);
 				//Cycle Through Tracked Objects
 				if (k == 'n') {
-					currentObjectId = (currentObjectId + 1) % numObjects;
+					currentObjectId = (currentObjectId + 1) % (numObjects > 0 ? numObjects : 1);
 				}
 				TrackedObject* curObject = trackedObjects.getTrackedObject(currentObjectId);
 				if (curObject) {
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 		}
 		//Cycle Through Tracked Objects
 		if (k == 'n') {
-			currentObjectId = (currentObjectId + 1) % numObjects;
+			currentObjectId = (currentObjectId + 1) % (numObjects > 0 ? numObjects : 1);
 		}
 		TrackedObject* curObject = trackedObjects.getTrackedObject(currentObjectId);
 		if (curObject) {

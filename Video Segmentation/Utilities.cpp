@@ -60,9 +60,10 @@ bool compareContourSize(vector<cv::Point> i, vector<cv::Point> j) {
 	return (areaI>areaJ);
 }
 
-Mat kNearestColours(Mat source, int k) {
+Mat Utilities::kNearestColours(Mat source, int k) {
 	Mat src;
-	cvtColor(source, src, CV_BGR2HSV);
+	imshow("IN", source);
+	cvtColor(source, src, CV_BGR2Lab);
 	Mat samples(src.rows * src.cols, 3, CV_32F);
 	for (int y = 0; y < src.rows; y++)
 		for (int x = 0; x < src.cols; x++)
@@ -88,10 +89,11 @@ Mat kNearestColours(Mat source, int k) {
 	}
 	Mat dest;
 
-	cvtColor(dst, dest, CV_HSV2BGR);
+	cvtColor(dst, dest, CV_Lab2BGR);
 	Scalar* colours = (Scalar*)malloc(sizeof(Scalar)*k);
 	for (int i = 0; i < centers.rows; i++) {
 		colours[i] = Scalar(centers.at<float>(i, 0), centers.at<float>(i, 1), centers.at<float>(i, 2));
+		std::cout << "colors" + SSTR(centers.at<float>(i, 0)) + " " + SSTR(centers.at<float>(i, 1)) + " " + SSTR(centers.at<float>(i, 2)) + "\n";
 		Scalar lower = Scalar(centers.at<float>(i, 0) - 10, centers.at<float>(i, 1) - 7, centers.at<float>(i, 2) - 1);
 		Scalar upper = Scalar(centers.at<float>(i, 0) + 10, centers.at<float>(i, 1) + 7, centers.at<float>(i, 2) + 1);
 		Mat temp(src.size(),src.type());

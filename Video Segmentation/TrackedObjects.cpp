@@ -7,7 +7,6 @@
 
 TrackedObjects::TrackedObjects(Mat frame)
 {
-	trackedObjects = (TrackedObject**)malloc(maxObjects * sizeof(TrackedObject*));
 	cvtColor(frame, prevFrame, CV_BGR2GRAY);
 }
 
@@ -41,20 +40,28 @@ int TrackedObjects::find(Mat frame)
 	Mat hsv[3];
 	split(out, hsv);
 
-	hsv[0] = (angle);
+
+	hsv[0] = angle;
 	normalize(mag, hsv[1], 255, 255, NORM_MINMAX);
 	normalize(mag, hsv[2], 0, 255, NORM_MINMAX);
 	merge(hsv, 3, out);
 	//hsv[1].setTo(254.9);
 	merge(hsv, 3, out);
+	
+
 	cvtColor(out, out, CV_HSV2BGR);
+	out = Utilities::kNearestColours(out, 5);
 	imshow("Flow", out);
+
+	//cvtColor(out, out, CV_BGR2HSV);
+	//split(out, hsv);
 
 	Mat hist;
 	/// Establish the number of bins
-	int histSize = 36;
+	int histSize = 12;
 	int hist_w = 512; int hist_h = 400;
 	int bin_w = cvRound((double)hist_w / histSize);
+	int bin_size = cvRound(360.0 / histSize);
 
 	Mat histImage(hist_h, hist_w, CV_8UC3, Scalar(0, 0, 0));
 
@@ -70,36 +77,34 @@ int TrackedObjects::find(Mat frame)
 	//Mat inverseS;
 	//threshold(hsv[1], inverseS, 2, 1, THRESH_BINARY_INV);
 	//std::cout << "/n" +SSTR(hist.at<float>(0))+" " +SSTR(hist.at<float>(1)) +"/n";// sum(inverseS)[0];//Remove background;
-	for (int i = 0; i < 36; i++) {
-		std::cout << SSTR(hist.at<float>(i)) + "\n";
-	}
 	//normalize(hist, hist, 0, hist.rows, NORM_MINMAX);
 
 	for (int i = 0; i < histSize; i++)
 	{
-		if (hist.at<float>(i) > 350) {
+		if (hist.at<float>(i) > 150) {
+			std::cout << "Hist: " + SSTR(i) +" "+ SSTR(hist.at<float>(i)) + "\n";
 			line(histImage, Point(bin_w*(i), hist_h),
 				Point(bin_w*(i), hist_h - cvRound(hist.at<float>(i))),
 				Scalar(255, 0, 0), 2, 8, 0);
 			//get masks
 			Mat mask;
 			Mat maskV;
-			inRange(hsv[0], (i *10-5), (i*10+15) , mask);
+			inRange(hsv[0], (i *bin_size), (i*bin_size + bin_size) , mask);
 			inRange(hsv[2], 0, 30, maskV);
 			//imshow("S", maskV);
-			Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(3, 3));
+			Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(7, 7));
 			dilate(mask, mask, structuringElement);
 			mask |= maskV;
 			//imshow("Q"+SSTR(i), mask);
 			Mat masked;
 			frame.copyTo(masked, mask);
-			//imshow("Masked"+SSTR(i*10), masked);
+			imshow("Masked"+SSTR(i*bin_size), masked);
 			int potentialObjectsFound = find_contour(masked, objectBoundingBoxes, maxObjects * 1000);
 			//find(frame, objectBoundingBoxes, potentialObjectsFound, objectsFound);
 			//objectsFound += potentialObjectsFound;
 			int k = 0, j = 0;
 			while (trackedObjectList.size() < maxObjects && j < potentialObjectsFound) {
-				if (objectBoundingBoxes[j].area() > 40) {
+				if (objectBoundingBoxes[j].area() > 100) {
 					//rectangle(frame, objectBoundingBoxes[i], Scalar(255, 0, 0), 2, 1);
 					//trackedObjects[k + objectsFound] = new TrackedObject(frame, objectBoundingBoxes[j], k+objectsFound);
 					
@@ -107,18 +112,31 @@ int TrackedObjects::find(Mat frame)
 					for (int objectId = 0; objectId < trackedObjectList.size(); objectId++) {
 						//If overlap
 						//Expand to group separate bits
-						int expandingFactor = 5;
+						int expandingFactor = 50;
 						Rect2d expandedBoundingBox(objectBoundingBoxes[j].tl().x - expandingFactor, objectBoundingBoxes[j].tl().y - expandingFactor,
 							objectBoundingBoxes[j].width + 2 * expandingFactor, objectBoundingBoxes[j].height + 2 * expandingFactor);
 						Rect2d objectBoundingBox = trackedObjectList.at(objectId).getBoundingBox();
 						if (((expandedBoundingBox & objectBoundingBox).area() > 0)) {
 							//If going in same direction
 							Vec2d objectMotionVector = trackedObjectList.at(objectId).motionVector;//getMotionVector();
-							float angle = cvFastArctan(trackedObjectList.at(objectId).motionVector.val[1], trackedObjectList.at(objectId).motionVector.val[0]);
+							float angle = trackedObjectList.at(objectId).getMotionAngle();
+
 							//printf("x%f y%f %f angle \n", trackedObjectList.at(objectId).motionVector.val[0], trackedObjectList.at(objectId).motionVector.val[1], angle);
-							if (Utilities::isAngleBetween(angle, (i * 10 - 15), (i * 10 + 15))) {
+							if (Utilities::isAngleBetween(angle, (i * bin_size - bin_size), (i * bin_size + bin_size*2))) {
 								//trackedObjects[objectId]->updateTracker(frame,objectBoundingBoxes[j]);
-								trackedObjectList.at(objectId).updateTracker(frame, objectBoundingBoxes[j]);
+								//get masks
+								Mat mask2;
+								Mat maskV2;
+								inRange(hsv[0], (i *bin_size - bin_size), (i*bin_size + bin_size*2), mask2);
+								inRange(hsv[2], 0, 30, maskV2);
+								//imshow("S", maskV);
+								Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(7, 7));
+								dilate(mask2, mask2, structuringElement);
+								mask2 |= maskV2;
+								//imshow("Q"+SSTR(i), mask);
+								Mat masked2;
+								frame.copyTo(masked2, mask2);
+								trackedObjectList.at(objectId).updateTracker(masked2, objectBoundingBoxes[j]);
 								foundExistingObject = true;
 								break;
 							}
@@ -126,7 +144,8 @@ int TrackedObjects::find(Mat frame)
 					}
 
 					if (!foundExistingObject && objectBoundingBoxes[j].area() > 30 && trackedObjectList.size() < maxObjects) {
-						TrackedObject* newObject = new TrackedObject(frame, objectBoundingBoxes[j], id++);
+						TrackedObject* newObject = new TrackedObject(frame, objectBoundingBoxes[j], i * bin_size + bin_size / 2,id++);
+						std:cout << "ID " + SSTR(id) + " angle " + SSTR(i * bin_size);
 						trackedObjectList.push_back(*newObject);
 					}
 					
@@ -157,12 +176,27 @@ int TrackedObjects::consolidateObjects()
 		if(object.size().area() > 0)
 			number = Utilities::find_boundingBoxes(object, newBoundingBoxes, 1);
 		if (magnituedSquared < 0.01 || number == 0  || 
-			(number > 0 && (newBoundingBoxes[0]& trackedObjectList.at(i).getTrackerBoundingBox()).area()< 25)) {
+			(number > 0 && (newBoundingBoxes[0]& trackedObjectList.at(i).getTrackerBoundingBox()).area()< 25) ) {
+
 			trackedObjectList.erase(trackedObjectList.begin() + i);
 		}
 		else {
 			i++;
 		}
+		/*
+		if (magnituedSquared < 0.01) {
+			if(trackedObjectList.at(i).markedToRemove || number == 0 || (number > 0 && (newBoundingBoxes[0] & trackedObjectList.at(i).getTrackerBoundingBox()).area() < 25) ) {
+					trackedObjectList.erase(trackedObjectList.begin() + i);
+			}
+			else {
+				trackedObjectList.at(i).markedToRemove = true;
+				i++;
+			}
+		}
+		else {
+			i++;
+		}
+		*/
 	}
 
 	return trackedObjectList.size();
@@ -258,13 +292,15 @@ void TrackedObjects::update(Mat frame, Mat outputFrame) {
 		bool isOverlap = false;
 		while (j < trackedObjectList.size()) {
 			if (i != j) {
-				isOverlap = trackedObjectList.at(i).boundingBoxOverlap(trackedObjectList.at(j));
+				isOverlap = (trackedObjectList.at(i).getBoundingBox() & trackedObjectList.at(j).getBoundingBox()).area();
+				//trackedObjectList.at(i).boundingBoxOverlap(trackedObjectList.at(j));
 
 				//If objects are overlapping and moving in the same direction then they are likely the same, hence delete one
 				motionAngleI = cvFastArctan(trackedObjectList.at(i).motionVector.val[1], trackedObjectList.at(i).motionVector.val[0]);
 				motionAngleJ = cvFastArctan(trackedObjectList.at(j).motionVector.val[1], trackedObjectList.at(j).motionVector.val[0]);
-				if (Utilities::isAngleBetween(motionAngleJ, motionAngleI-5, motionAngleI+5)) {
+				if (isOverlap && Utilities::isAngleBetween(motionAngleJ, motionAngleI-15, motionAngleI+15)) {
 					trackedObjectList.erase(trackedObjectList.begin() + j);
+					isOverlap = false;
 				}else {
 					j++;
 				}

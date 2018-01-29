@@ -19,13 +19,12 @@ public:
 	void update(Mat frame, Mat outputFrame);
 
 	int TrackedObjects::getNumTrackedObjects();
-	const int maxObjects = 5;
+	const int maxObjects = 50;
 	RNG rng;
 private:
 	TrackedObject** trackedObjects;
 	std::vector<TrackedObject> trackedObjectList;
 	Rect2d objectBoundingBoxes[3000];//TODO CHANGE
 	Mat prevFrame;
-
 };
 

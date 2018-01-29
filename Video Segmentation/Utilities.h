@@ -9,6 +9,7 @@ using namespace std;
 class Utilities
 {
 public:
+	static Mat kNearestColours(Mat source, int k);
 	static int find_boundingBoxes(Mat image, cv::Rect2d * boundingBoxes, int maxBoundingBoxes);
 	static vector<vector<Point>> find_contours(Mat image, int maxBoundingBoxes);
 	static Mat get_object_contours(Mat frame, Mat prevFrame, int maxBoundingBoxes);
