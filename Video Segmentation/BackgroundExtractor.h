@@ -4,6 +4,8 @@
 
 using namespace cv;
 
+#define alpha 0.3
+
 class BackgroundExtractor
 {
 public:
@@ -16,5 +18,6 @@ public:
 private:
 	int thresh;
 	Mat previousFrame,mask,forground;
+	bool isInitialised;
 };
 

@@ -5,6 +5,7 @@ BackgroundExtractor::BackgroundExtractor(Mat frame, int threshold_)
 {
 	frame.copyTo(previousFrame);
 	thresh = threshold_;
+	isInitialised = false;
 }
 
 BackgroundExtractor::~BackgroundExtractor()
@@ -24,6 +25,8 @@ void BackgroundExtractor::update(Mat frame)
 	imshow("Background", background);
 
 	frame.copyTo(previousFrame);
+
+	isInitialised = true;
 }
 
 void BackgroundExtractor::update(Mat frame, TrackedObjects objects, int size)
@@ -32,6 +35,12 @@ void BackgroundExtractor::update(Mat frame, TrackedObjects objects, int size)
 	UMat flow;
 	Mat nextGrey, previousGrey, flowPolar, out(frame.rows, frame.cols, CV_8UC3);
 	Mat backgroundMask(frame.size(),CV_8U), forgroundMask;
+	Mat oldBackground;
+
+	if (isInitialised) {
+		background.copyTo(oldBackground);
+	}
+
 	forground.setTo(Scalar(0, 0, 0));
 	cvtColor(frame, nextGrey, CV_BGR2GRAY);
 	cvtColor(previousFrame, previousGrey, CV_BGR2GRAY);
@@ -57,7 +66,10 @@ void BackgroundExtractor::update(Mat frame, TrackedObjects objects, int size)
 	backgroundMask.convertTo(backgroundMask, CV_8U);
 	frame.copyTo(background, backgroundMask);
 
+	//Exponential averaging
+	background = alpha*background + (1 - alpha)*oldBackground;
 
+	//Forground extraction
 	absdiff(background, frame, forgroundMask);
 	cvtColor(forgroundMask, forgroundMask, CV_BGR2GRAY);
 	threshold(forgroundMask, forgroundMask, 20, 255, THRESH_BINARY);

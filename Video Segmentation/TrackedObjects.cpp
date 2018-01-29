@@ -296,10 +296,15 @@ void TrackedObjects::update(Mat frame, Mat outputFrame) {
 				//trackedObjectList.at(i).boundingBoxOverlap(trackedObjectList.at(j));
 
 				//If objects are overlapping and moving in the same direction then they are likely the same, hence delete one
-				motionAngleI = cvFastArctan(trackedObjectList.at(i).motionVector.val[1], trackedObjectList.at(i).motionVector.val[0]);
-				motionAngleJ = cvFastArctan(trackedObjectList.at(j).motionVector.val[1], trackedObjectList.at(j).motionVector.val[0]);
+				motionAngleI = trackedObjectList.at(i).getMotionAngle();
+				motionAngleJ = trackedObjectList.at(j).getMotionAngle();
 				if (isOverlap && Utilities::isAngleBetween(motionAngleJ, motionAngleI-15, motionAngleI+15)) {
 					trackedObjectList.erase(trackedObjectList.begin() + j);
+					//Now need to make sure i is pointing to the correct position
+					if (i > j) {
+						//This has removed something before it therefore need to move i back by one
+						i--;
+					}
 					isOverlap = false;
 				} else {
 					j++;
