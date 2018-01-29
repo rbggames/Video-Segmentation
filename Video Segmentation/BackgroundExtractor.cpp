@@ -57,6 +57,7 @@ void BackgroundExtractor::update(Mat frame, TrackedObjects objects, int size)
 	backgroundMask.convertTo(backgroundMask, CV_8U);
 	frame.copyTo(background, backgroundMask);
 
+
 	absdiff(background, frame, forgroundMask);
 	cvtColor(forgroundMask, forgroundMask, CV_BGR2GRAY);
 	threshold(forgroundMask, forgroundMask, 20, 255, THRESH_BINARY);

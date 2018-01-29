@@ -289,9 +289,10 @@ void TrackedObjects::update(Mat frame, Mat outputFrame) {
 	double motionAngleI, motionAngleJ;
 	while ( i < trackedObjectList.size()) {
 		bool isOverlap = false;
+		j = 0;
 		while (j < trackedObjectList.size()) {
 			if (i != j) {
-				isOverlap = (trackedObjectList.at(i).getBoundingBox() & trackedObjectList.at(j).getBoundingBox()).area();
+				isOverlap = isOverlap || (trackedObjectList.at(i).getBoundingBox() & trackedObjectList.at(j).getBoundingBox()).area() > 0.0;
 				//trackedObjectList.at(i).boundingBoxOverlap(trackedObjectList.at(j));
 
 				//If objects are overlapping and moving in the same direction then they are likely the same, hence delete one
@@ -300,12 +301,13 @@ void TrackedObjects::update(Mat frame, Mat outputFrame) {
 				if (isOverlap && Utilities::isAngleBetween(motionAngleJ, motionAngleI-15, motionAngleI+15)) {
 					trackedObjectList.erase(trackedObjectList.begin() + j);
 					isOverlap = false;
-				}else {
+				} else {
 					j++;
 				}
-				break;
 			}
-			j++;
+			else {
+				j++;
+			}
 		}
 		trackedObjectList.at(i).drawSegment(frame, isOverlap, outputFrame);
 		i++;
