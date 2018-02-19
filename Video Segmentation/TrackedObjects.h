@@ -26,5 +26,6 @@ private:
 	std::vector<TrackedObject> trackedObjectList;
 	Rect2d objectBoundingBoxes[3000];//TODO CHANGE
 	Mat prevFrame;
+	double smallestObjectArea;
 };
 

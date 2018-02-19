@@ -3,9 +3,12 @@
 #include "Evaluator.h"
 #include "Utilities.h"
 
+
+
 TrackedObjects::TrackedObjects(Mat frame)
 {
-	cvtColor(frame, prevFrame, CV_BGR2GRAY);
+	cv::cvtColor(frame, prevFrame, CV_BGR2GRAY);
+	smallestObjectArea = 0.0;
 }
 
 
@@ -26,7 +29,7 @@ int TrackedObjects::find(Mat frame)
 	int objectsFound = 0;
 	UMat flow;
 	Mat nextGrey, flowPolar, out(frame.rows, frame.cols, CV_8UC3);
-	cvtColor(frame, nextGrey, CV_BGR2GRAY);
+	cv::cvtColor(frame, nextGrey, CV_BGR2GRAY);
 	calcOpticalFlowFarneback(prevFrame, nextGrey, flow, 0.5, 3, 15, 3, 5, 1.2, 0);
 
 	vector<Mat> channels(2);
@@ -47,7 +50,7 @@ int TrackedObjects::find(Mat frame)
 	merge(hsv, 3, out);
 	
 
-	cvtColor(out, out, CV_HSV2BGR);
+	cv::cvtColor(out, out, CV_HSV2BGR);
 	//out = Utilities::kNearestColours(out, 5);
 	imshow("Flow", out);
 
@@ -76,6 +79,17 @@ int TrackedObjects::find(Mat frame)
 	//threshold(hsv[1], inverseS, 2, 1, THRESH_BINARY_INV);
 	//std::cout << "/n" +SSTR(hist.at<float>(0))+" " +SSTR(hist.at<float>(1)) +"/n";// sum(inverseS)[0];//Remove background;
 	//normalize(hist, hist, 0, hist.rows, NORM_MINMAX);
+	
+	//Find the current smallestObject
+	int smallestObjectId = 0;
+	smallestObjectArea = trackedObjectList.size()  == 0 ? -1 : trackedObjectList.at(0).getBoundingBox().area();
+	for (int i = 1; i < trackedObjectList.size(); i++) {
+		if (smallestObjectArea > trackedObjectList.at(i).getBoundingBox().area()) {
+			smallestObjectArea = trackedObjectList.at(i).getBoundingBox().area();
+			smallestObjectId = i;
+		}
+
+	}
 
 	for (int i = 0; i < histSize; i++)
 	{
@@ -98,6 +112,7 @@ int TrackedObjects::find(Mat frame)
 			frame.copyTo(masked, mask);
 			imshow("Masked"+SSTR(i*bin_size), masked);
 			int potentialObjectsFound = find_contour(masked, objectBoundingBoxes, maxObjects * 1000);
+
 			//find(frame, objectBoundingBoxes, potentialObjectsFound, objectsFound);
 			//objectsFound += potentialObjectsFound;
 			int k = 0, j = 0;
@@ -110,7 +125,7 @@ int TrackedObjects::find(Mat frame)
 					for (int objectId = 0; objectId < trackedObjectList.size(); objectId++) {
 						//If overlap
 						//Expand to group separate bits
-						int expandingFactor = 50;
+						int expandingFactor = 10;
 						Rect2d expandedBoundingBox(objectBoundingBoxes[j].tl().x - expandingFactor, objectBoundingBoxes[j].tl().y - expandingFactor,
 							objectBoundingBoxes[j].width + 2 * expandingFactor, objectBoundingBoxes[j].height + 2 * expandingFactor);
 						Rect2d objectBoundingBox = trackedObjectList.at(objectId).getBoundingBox();
@@ -133,17 +148,40 @@ int TrackedObjects::find(Mat frame)
 								//imshow("Q"+SSTR(i), mask);
 								Mat masked2;
 								frame.copyTo(masked2, mask2);
+								imshow("Q"+SSTR(i*bin_size), masked2);
 								trackedObjectList.at(objectId).updateTracker(masked2, objectBoundingBoxes[j]);
 								foundExistingObject = true;
+
+
+								//Find the current smallestObject
+								int smallestObjectId = 0;
+								smallestObjectArea = trackedObjectList.size() == 0 ? -1 : trackedObjectList.at(0).getBoundingBox().area();
+								for (int i = 1; i < trackedObjectList.size(); i++) {
+									if (smallestObjectArea > trackedObjectList.at(i).getBoundingBox().area()) {
+										smallestObjectArea = trackedObjectList.at(i).getBoundingBox().area();
+										smallestObjectId = i;
+									}
+								}
+
 								break;
 							}
 						}
 					}
 
-					if (!foundExistingObject && objectBoundingBoxes[j].area() > 30 && trackedObjectList.size() < maxObjects) {
-						TrackedObject* newObject = new TrackedObject(frame, objectBoundingBoxes[j], i * bin_size + bin_size / 2,id++);
-						std:cout << "ID " + SSTR(id) + " angle " + SSTR(i * bin_size);
-						trackedObjectList.push_back(*newObject);
+					if (!foundExistingObject && objectBoundingBoxes[j].area() > 30) {
+						if (trackedObjectList.size() < maxObjects) {
+							TrackedObject* newObject = new TrackedObject(frame, objectBoundingBoxes[j], i * bin_size + bin_size / 2, id++);
+							std::cout << "ID " + SSTR(id) + " angle " + SSTR(i * bin_size);
+							trackedObjectList.push_back(*newObject);
+						}
+						else {
+							if (objectBoundingBoxes[j].area() > smallestObjectArea) {
+								trackedObjectList.erase(trackedObjectList.begin() + smallestObjectId);
+								TrackedObject* newObject = new TrackedObject(frame, objectBoundingBoxes[j], i * bin_size + bin_size / 2, id++);
+								std::cout << "ID " + SSTR(id) + " angle " + SSTR(i * bin_size);
+								trackedObjectList.push_back(*newObject);
+							}
+						}
 					}
 					
 					k++;
@@ -156,7 +194,7 @@ int TrackedObjects::find(Mat frame)
 	}
 	/// Display
 	imshow("calcHist Demo", histImage);
-	cvtColor(frame, prevFrame, CV_BGR2GRAY);
+	cv::cvtColor(frame, prevFrame, CV_BGR2GRAY);
 	return trackedObjectList.size();
 	
 }
@@ -209,7 +247,7 @@ int TrackedObjects::find_contour(Mat image, cv::Rect2d* boundingBoxes, int maxBo
 	contour_mat = image.clone();
 	bounding_mat = image.clone();
 
-	cvtColor(image, gray_mat, CV_BGR2GRAY);
+	cv::cvtColor(image, gray_mat, CV_BGR2GRAY);
 
 	// apply canny edge detection
 	Canny(image, canny_mat, 100, 150, 3, false);
@@ -298,11 +336,20 @@ void TrackedObjects::update(Mat frame, Mat outputFrame) {
 				motionAngleJ = trackedObjectList.at(j).getMotionAngle();
 				if (isOverlap) {
 					if (Utilities::isAngleBetween(motionAngleJ, motionAngleI - 15, motionAngleI + 15)) {
-						trackedObjectList.erase(trackedObjectList.begin() + j);
-						//Now need to make sure i is pointing to the correct position
-						if (i > j) {
-							//This has removed something before it therefore need to move i back by one
-							i--;
+						if (trackedObjectList.at(i).getBoundingBox().area() > trackedObjectList.at(j).getBoundingBox().area()) {
+							//Remove smaller one at j
+							trackedObjectList.erase(trackedObjectList.begin() + j);
+							//Now need to make sure i is pointing to the correct position
+							if (i > j) {
+								//This has removed something before it therefore need to move i back by one
+								i--;
+							}							
+						}
+						else {
+							//Remove smaller one at i
+							trackedObjectList.erase(trackedObjectList.begin() + i);
+							//Now i no longer exists so is pointing to the next element in the list so need to restart looking against all others
+							j = 0;
 						}
 						isOverlap = false;
 					}
