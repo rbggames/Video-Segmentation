@@ -28,6 +28,7 @@ public:
 	Vec2d getMotionVector();
 	double getMotionAngle();
 	int getId();
+	bool isPredicting();
 
 	bool markedToRemove;
 	Vec2d motionVector;//TODO Change to private
@@ -45,7 +46,6 @@ private:
 	bool trackingReset;
 	bool predicting;
 	double motionAngle;
-
 	void refineMask(Mat image, Mat mask, Rect2d boundingBox);
 };
 

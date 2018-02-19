@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 		trackedObjects.update(forground, outputFrame);
 		background.update(frame,trackedObjects,numObjects);
 
-		if (num % 30 == 0) {
+		if (num % 30 == 2) {
 			numObjects = trackedObjects.consolidateObjects();
 		}
 		num++;

@@ -134,7 +134,7 @@ int TrackedObjects::find(Mat frame)
 							float angle = trackedObjectList.at(objectId).getMotionAngle();
 
 							//printf("x%f y%f %f angle \n", trackedObjectList.at(objectId).motionVector.val[0], trackedObjectList.at(objectId).motionVector.val[1], angle);
-							if (Utilities::isAngleBetween(angle, (i * bin_size - bin_size*1.5), (i * bin_size + bin_size*2.5))) {
+							if (Utilities::isAngleBetween(angle, (i * bin_size - bin_size*0.5), (i * bin_size + bin_size*1.5))) {
 								//trackedObjects[objectId]->updateTracker(frame,objectBoundingBoxes[j]);
 								//get masks
 								Mat mask2;
@@ -211,8 +211,8 @@ int TrackedObjects::consolidateObjects()
 		if(object.size().area() > 0)
 			number = Utilities::find_boundingBoxes(object, newBoundingBoxes, 1);
 		if (magnituedSquared < 0.01 || number == 0  || 
-			(number > 0 && (newBoundingBoxes[0]& trackedObjectList.at(i).getTrackerBoundingBox()).area()< 25) ) {
-
+			(number > 0 && (newBoundingBoxes[0]& trackedObjectList.at(i).getTrackerBoundingBox()).area()< 25 && !trackedObjectList.at(i).isPredicting()) ) {
+			std::cout << "Removing, consolidateObjects, 1 " + SSTR(i);
 			trackedObjectList.erase(trackedObjectList.begin() + i);
 		}
 		else {
@@ -327,7 +327,7 @@ void TrackedObjects::update(Mat frame, Mat outputFrame) {
 		bool isOverlap = false;
 		j = 0;
 		while (j < trackedObjectList.size()) {
-			if (i != j) {
+			if (i != j && i < trackedObjectList.size()) {
 				isOverlap = isOverlap || (trackedObjectList.at(i).getBoundingBox() & trackedObjectList.at(j).getBoundingBox()).area() > 0.0;
 				//trackedObjectList.at(i).boundingBoxOverlap(trackedObjectList.at(j));
 
@@ -338,6 +338,7 @@ void TrackedObjects::update(Mat frame, Mat outputFrame) {
 					if (Utilities::isAngleBetween(motionAngleJ, motionAngleI - 15, motionAngleI + 15)) {
 						if (trackedObjectList.at(i).getBoundingBox().area() > trackedObjectList.at(j).getBoundingBox().area()) {
 							//Remove smaller one at j
+							std::cout << "Removing, Update, 1 " + SSTR(j);
 							trackedObjectList.erase(trackedObjectList.begin() + j);
 							//Now need to make sure i is pointing to the correct position
 							if (i > j) {
@@ -347,6 +348,7 @@ void TrackedObjects::update(Mat frame, Mat outputFrame) {
 						}
 						else {
 							//Remove smaller one at i
+							std::cout << "Removing, Update, 2 " + SSTR(i);
 							trackedObjectList.erase(trackedObjectList.begin() + i);
 							//Now i no longer exists so is pointing to the next element in the list so need to restart looking against all others
 							j = 0;
@@ -356,7 +358,9 @@ void TrackedObjects::update(Mat frame, Mat outputFrame) {
 					else {
 						//Remove predicting object if is not moving
 						if (Utilities::magnitudeSquared(trackedObjectList.at(i).getMotionVector()) < 0.1) {
-							trackedObjectList.erase(trackedObjectList.begin() + j);
+							//Remove smaller one at j
+							std::cout << "Removing, Update, 3 " + SSTR(i);
+							trackedObjectList.erase(trackedObjectList.begin() + i);
 							//Now need to make sure i is pointing to the correct position
 							if (i > j) {
 								//This has removed something before it therefore need to move i back by one
@@ -376,7 +380,8 @@ void TrackedObjects::update(Mat frame, Mat outputFrame) {
 				j++;
 			}
 		}
-		trackedObjectList.at(i).drawSegment(frame, isOverlap, outputFrame);
+		if(i<trackedObjectList.size())
+			trackedObjectList.at(i).drawSegment(frame, isOverlap, outputFrame);
 		i++;
 	}
 }

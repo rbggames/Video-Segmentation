@@ -362,3 +362,8 @@ int TrackedObject::getId()
 {
 	return id;
 }
+
+bool TrackedObject::isPredicting()
+{
+	return predicting;
+}
