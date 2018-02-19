@@ -37,12 +37,13 @@ private:
 	int numFramesForLastMaskRefinement;
 	Rect2d objectBoundingBox;
 	Rect2d trackerBoundingBox;
-	Point position;
-	Point previousPosition[5];
+	Point2f position;
+	Point2f previousPosition[5];
 	Mat object;
 	Mat savedObject;
 	Ptr<Tracker> tracker;
 	bool trackingReset;
+	bool predicting;
 	double motionAngle;
 
 	void refineMask(Mat image, Mat mask, Rect2d boundingBox);

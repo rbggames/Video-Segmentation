@@ -272,3 +272,7 @@ bool Utilities::isAngleBetween(double angle, double bound1, double bound2) {
 		return bound1 <= angle && angle <= bound2;
 	return bound1 <= angle || angle <= bound2;
 }
+
+double Utilities::magnitudeSquared(Vec2d vec) {
+	return vec.val[0] * vec.val[0] + vec.val[1] * vec.val[1];
+}

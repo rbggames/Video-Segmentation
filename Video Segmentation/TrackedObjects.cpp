@@ -3,8 +3,6 @@
 #include "Evaluator.h"
 #include "Utilities.h"
 
-
-
 TrackedObjects::TrackedObjects(Mat frame)
 {
 	cvtColor(frame, prevFrame, CV_BGR2GRAY);
@@ -49,7 +47,7 @@ int TrackedObjects::find(Mat frame)
 	merge(hsv, 3, out);
 	
 
-	//cvtColor(out, out, CV_HSV2BGR);
+	cvtColor(out, out, CV_HSV2BGR);
 	//out = Utilities::kNearestColours(out, 5);
 	imshow("Flow", out);
 
@@ -121,7 +119,7 @@ int TrackedObjects::find(Mat frame)
 							float angle = trackedObjectList.at(objectId).getMotionAngle();
 
 							//printf("x%f y%f %f angle \n", trackedObjectList.at(objectId).motionVector.val[0], trackedObjectList.at(objectId).motionVector.val[1], angle);
-							if (Utilities::isAngleBetween(angle, (i * bin_size - bin_size), (i * bin_size + bin_size*2))) {
+							if (Utilities::isAngleBetween(angle, (i * bin_size - bin_size*1.5), (i * bin_size + bin_size*2.5))) {
 								//trackedObjects[objectId]->updateTracker(frame,objectBoundingBoxes[j]);
 								//get masks
 								Mat mask2;
@@ -298,15 +296,32 @@ void TrackedObjects::update(Mat frame, Mat outputFrame) {
 				//If objects are overlapping and moving in the same direction then they are likely the same, hence delete one
 				motionAngleI = trackedObjectList.at(i).getMotionAngle();
 				motionAngleJ = trackedObjectList.at(j).getMotionAngle();
-				if (isOverlap && Utilities::isAngleBetween(motionAngleJ, motionAngleI-15, motionAngleI+15)) {
-					trackedObjectList.erase(trackedObjectList.begin() + j);
-					//Now need to make sure i is pointing to the correct position
-					if (i > j) {
-						//This has removed something before it therefore need to move i back by one
-						i--;
+				if (isOverlap) {
+					if (Utilities::isAngleBetween(motionAngleJ, motionAngleI - 15, motionAngleI + 15)) {
+						trackedObjectList.erase(trackedObjectList.begin() + j);
+						//Now need to make sure i is pointing to the correct position
+						if (i > j) {
+							//This has removed something before it therefore need to move i back by one
+							i--;
+						}
+						isOverlap = false;
 					}
-					isOverlap = false;
-				} else {
+					else {
+						//Remove predicting object if is not moving
+						if (Utilities::magnitudeSquared(trackedObjectList.at(i).getMotionVector()) < 0.1) {
+							trackedObjectList.erase(trackedObjectList.begin() + j);
+							//Now need to make sure i is pointing to the correct position
+							if (i > j) {
+								//This has removed something before it therefore need to move i back by one
+								i--;
+							}
+							isOverlap = false;
+						}else{
+							j++;
+						}
+					}
+				}
+				else {
 					j++;
 				}
 			}

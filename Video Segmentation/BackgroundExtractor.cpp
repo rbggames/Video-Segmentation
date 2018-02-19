@@ -31,7 +31,6 @@ void BackgroundExtractor::update(Mat frame)
 
 void BackgroundExtractor::update(Mat frame, TrackedObjects objects, int size)
 {
-
 	UMat flow;
 	Mat nextGrey, previousGrey, flowPolar, out(frame.rows, frame.cols, CV_8UC3);
 	Mat backgroundMask(frame.size(),CV_8U), forgroundMask;
@@ -62,7 +61,7 @@ void BackgroundExtractor::update(Mat frame, TrackedObjects objects, int size)
 	//hsv[1].setTo(254.9);
 	merge(hsv, 3, out);
 	cvtColor(out, out, CV_HSV2BGR);
-	threshold(hsv[2], backgroundMask, 20, 255, THRESH_BINARY_INV);
+	threshold(hsv[2], backgroundMask, 5, 255, THRESH_BINARY_INV);
 	backgroundMask.convertTo(backgroundMask, CV_8U);
 	frame.copyTo(background, backgroundMask);
 
@@ -72,7 +71,7 @@ void BackgroundExtractor::update(Mat frame, TrackedObjects objects, int size)
 	//Forground extraction
 	absdiff(background, frame, forgroundMask);
 	cvtColor(forgroundMask, forgroundMask, CV_BGR2GRAY);
-	threshold(forgroundMask, forgroundMask, 20, 255, THRESH_BINARY);
+	threshold(forgroundMask, forgroundMask, 5, 255, THRESH_BINARY);
 	
 	//Expand mask
 	Mat structuringElement = getStructuringElement(MORPH_DILATE, Size(1, 1));
@@ -85,7 +84,7 @@ void BackgroundExtractor::update(Mat frame, TrackedObjects objects, int size)
 	imshow("Forground", forground);
 
 	frame.copyTo(previousFrame);
-
+	
 }
 
 Mat BackgroundExtractor::getForground()

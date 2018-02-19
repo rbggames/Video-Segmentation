@@ -6,6 +6,7 @@
 TrackedObject::TrackedObject(Mat frame, Rect2d boundingBox_,double angle, int id_)
 {
 	markedToRemove = false;
+	predicting = false;
 	trackingReset = true;
 	objectBoundingBox = Rect2d(boundingBox_);
 	trackerBoundingBox = Rect2d(objectBoundingBox);
@@ -62,8 +63,7 @@ TrackedObject::TrackedObject(Mat frame, Rect2d boundingBox_,double angle, int id
 	refineMask(frame, mask, objectBoundingBox);
 
 	if (position.x > 0 && position.y >0 && objectBoundingBox.width + position.x < object.cols && objectBoundingBox.height + position.y < object.rows)
-		Mat(object, Rect(position.x, position.y, objectBoundingBox.width, objectBoundingBox.height)).copyTo(savedObject);
-
+		frame(Rect(position.x, position.y, objectBoundingBox.width, objectBoundingBox.height)).copyTo(savedObject);
 	for (int i = 0; i < MAX_POSITIONS_TO_REMEMBER; i++) {
 		previousPosition[i].x = trackerBoundingBox.x;
 		previousPosition[i].y = trackerBoundingBox.y;
@@ -138,8 +138,8 @@ void TrackedObject::updateTracker(Mat frame, Rect2d boundingBox_) {
 
 	refineMask(frame, mask, objectBoundingBox);
 	frame.copyTo(object, mask);
-	if (position.x > 0 && position.y >0 && objectBoundingBox.width + position.x < object.cols && objectBoundingBox.height + position.y < object.rows)
-		Mat(object, Rect(position.x, position.y, objectBoundingBox.width, objectBoundingBox.height)).copyTo(savedObject);
+	//if (position.x > 0 && position.y >0 && objectBoundingBox.width + position.x < object.cols && objectBoundingBox.height + position.y < object.rows)
+		//object(Rect(position.x, position.y, objectBoundingBox.width, objectBoundingBox.height)).copyTo(savedObject);
 
 	//TODO: Remove
 	Mat temp;
@@ -216,12 +216,13 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 	object.setTo(Scalar(180, 180, 180));
 	if (!isOverlap) {//TODO:CHANGE
 		//Display Tracked object
+		predicting = false;
 		refineMask(frame, mask, objectBoundingBox);
 		frame.copyTo(object, mask);
 
 		
-		Mat(object, objectBoundingBox & Rect2d(0,0, frame.cols, frame.rows)).copyTo(savedObject);
-		
+		object(objectBoundingBox & Rect2d(0,0, frame.cols, frame.rows)).copyTo(savedObject);
+		//imshow(SSTR(id), savedObject);
 
 		putText(object, "Motion : mx=" + SSTR(motionVector.val[0]) + " my=" + SSTR(motionVector.val[1]), Point(100, 50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 0), 2);
 
@@ -231,14 +232,17 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 
 		//Draw bounding box on frame
 		rectangle(outputFrame, objectBoundingBox, Scalar(255, 0, 0), 2, 1);
-	}
-	else {
+	} else {
 		//Object Lost or obscured try to predict
 		//0) Check we have a savedObject
+		predicting = true; 
 		if (savedObject.size().area() < 25) {
+			//Cannot predict therefore kills itself
+			objectBoundingBox.width = 0;
+			objectBoundingBox.height = 0;
 			return;
 		}
-
+		//imshow(SSTR(id)+"!!", savedObject);
 		//1) Predict new position
 		position.x += motionVector.val[0];
 		position.y += motionVector.val[1];
@@ -260,13 +264,13 @@ void TrackedObject::drawSegment(Mat frame,bool isOverlap, Mat outputFrame)
 		Point2f src2[3] = { Point2f(0, 0), Point2f(0,100),Point2f(100,0) };
 		Point2f dst2[3] = { Point2f(motionVector.val[0], motionVector.val[1]),
 			Point2f(motionVector.val[0], motionVector.val[1]+100),
-			Point2f(motionVector.val[0]+100, motionVector.val[1]), };
+			Point2f(motionVector.val[0]+100, motionVector.val[1]) };
 		translationMat = getAffineTransform(src2, dst2);
 		warpAffine(mask, mask, translationMat, object.size(), 1);
 
 		putText(object, "Motion : mx=" + SSTR(motionVector.val[0]) + " my=" + SSTR(motionVector.val[1]), Point(100, 50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 0), 2);
 		putText(object, "Predicting", Point(100, 150), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(0, 0, 0), 2);
-
+		
 		//imshow("Tracked " + SSTR(int(id)), object);
 	}
 }

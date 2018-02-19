@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 					curObject->getObjectMat().copyTo(obj);
 					rectangle(obj, curObject->getTrackerBoundingBox(), Scalar(0, 0, 0));
 					rectangle(obj, curObject->getBoundingBox(), Scalar(255, 0, 0));
-					putText(obj, "Tracked (" + SSTR(currentObjectId) + ") :" + SSTR(curObject->getId()), Point(10, 20), FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(200, 200, 250), 1, CV_AA);
+					putText(obj, "Tracked (" + SSTR(currentObjectId) + ") :" + SSTR(curObject->getId()) + " Angle: " + SSTR(curObject->getMotionAngle()), Point(10, 20), FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(200, 200, 250), 1, CV_AA);
 					imshow("Object", obj);
 				}
 			}
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 			curObject->getObjectMat().copyTo(obj);
 			rectangle(obj, curObject->getTrackerBoundingBox(), Scalar(0, 0, 0));
 			rectangle(obj, curObject->getBoundingBox(), Scalar(255, 0, 0));
-			putText(obj, "Tracked ("+ SSTR(currentObjectId) +") :"+ SSTR(curObject->getId()), Point(10, 20), FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(200, 200, 250), 1, CV_AA);
+			putText(obj, "Tracked (" + SSTR(currentObjectId) + ") :" + SSTR(curObject->getId()) + " Angle: " + SSTR(curObject->getMotionAngle()), Point(10, 20), FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(200, 200, 250), 1, CV_AA);
 			imshow("Object", obj);
 		}
 
